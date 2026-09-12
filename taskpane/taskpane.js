@@ -504,7 +504,7 @@
       const gDoc = queueText(ctx.document.body.getRange('Whole'));
       await ctx.sync();
       const entries = ccs.items.map((cc) => {
-        const whole = cc.getRange('Whole');
+        const whole = cc.getRange('Content');
         const tabs = whole.tables;
         tabs.load('items');
         return { id: cc.id, get: queueText(whole), tabs };
@@ -588,7 +588,7 @@
       }
       const cc = targetRange.insertContentControl();
       cc.tag = TAG;
-      cc.title = 'AI 改写目标';
+      cc.title = 'LLM_in_Word 改写目标';
       cc.appearance = 'Hidden';
       await ctx.sync();
       return { ok: true, isTable, rows, cols };
@@ -667,7 +667,7 @@
       for (const cc of ccs.items) {
         const whole = cc.getRange('Whole');
         gaps.push(queueText(prevEnd.expandTo(whole.getRange('Start'))));
-        tgts.push(queueText(whole));
+        tgts.push(queueText(cc.getRange('Content')));
         const tabs = whole.tables;
         tabs.load('items');
         tabsList.push(tabs);
@@ -742,8 +742,8 @@
       const tk = state.targets.find((t) => t.ccId === ccId);
       const ccTabs = cc.getRange('Whole').tables;
       ccTabs.load('items');
-      const g = queueText(cc.getRange('Whole'));
-      const gh = cc.getRange('Whole').getHtml();
+      const g = queueText(cc.getRange('Content'));
+      const gh = cc.getRange('Content').getHtml();
       await ctx.sync();
       const table = ccTabs.items.length ? ccTabs.items[0] : null;
       const newVals = Array.isArray(opts.tableVals) && opts.tableVals.length ? opts.tableVals : null;

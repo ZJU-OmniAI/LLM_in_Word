@@ -126,7 +126,13 @@ EOF
 launchctl bootout "gui/$(id -u)/com.word_edit.server" 2>/dev/null || true
 rm -f "$HOME/Library/LaunchAgents/com.word_edit.server.plist"
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-launchctl bootstrap "gui/$(id -u)" "$PLIST"
+# bootout can return before the previous job has fully disappeared.
+STARTED=false
+for attempt in 1 2 3 4 5; do
+  if launchctl bootstrap "gui/$(id -u)" "$PLIST" 2>"$BASE/launchd-error.log"; then STARTED=true; break; fi
+  sleep 1
+done
+if ! $STARTED; then cat "$BASE/launchd-error.log"; exit 1; fi
 
 # ---- 5) 侧载 manifest 到 Word ----
 echo "⑤ 侧载 manifest → $WEF"

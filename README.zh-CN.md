@@ -177,7 +177,7 @@ npm run preview
 
 浏览器预览地址为 `http://127.0.0.1:8380/taskpane.html`。普通浏览器可以预览侧栏、检查后端连接；读取和写入 Word 文档必须在真实加载项中完成。
 
-离线回归测试采用合成文本和模拟 CLI，不需要模型账号。[GitHub Actions](https://github.com/ZJU-OmniAI/LLM_in_Word/actions) 在 Linux、macOS 和 Windows 上运行这些测试。Windows 还验证安装及服务生命周期和本机 HTTPS。CI **不包含 Word 桌面应用的交互自动化**。
+离线回归测试采用合成文本和模拟 CLI，不需要模型账号。[GitHub Actions](https://github.com/ZJU-OmniAI/LLM_in_Word/actions) 在 Linux、macOS 和 Windows 上运行这些测试。Windows 还验证安装及服务生命周期和本机 HTTPS。无桌面的 CI 会跳过需要人工点击的 Windows 证书信任弹窗，改为显式使用生成的证书验证 HTTPS；CI **不包含 Word 桌面应用及证书弹窗的交互验证**。
 
 可选的真实后端测试会消耗模型额度：
 

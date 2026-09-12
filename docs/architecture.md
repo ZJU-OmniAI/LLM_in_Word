@@ -53,3 +53,7 @@ For formatted replacement, the pane flattens Word's HTML into characters with th
 ## Rename compatibility
 
 The stable add-in ID `357a0a80-3537-4833-b135-a8177994730f`, legacy `word_edit_target` content-control tag and `we:*` webview storage keys stay unchanged to preserve existing documents and history. `WORD_EDIT_*` environment variables are fallback aliases for `LLM_IN_WORD_*`. These are compatibility identifiers, not the displayed project name.
+
+## Headless Windows CI
+
+`-SkipCertificateTrust` is a test-only installer option: it skips the CurrentUser Root security prompt, without disabling system protections. CI still creates/exports a real certificate and validates HTTPS using that exact CA, plus registration and service lifecycle. A skipped-trust installation is not ready for Word until the user imports/trusts the certificate. Interactive trust and Windows Word remain manual acceptance checks.

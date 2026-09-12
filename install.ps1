@@ -1,6 +1,6 @@
 # Windows PowerShell 5.1+. Run as the Windows user who runs Word (no admin required).
 [CmdletBinding()]
-param([switch]$UpdateOnly)
+param([switch]$UpdateOnly, [switch]$SkipCertificateTrust)
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'Use install.sh on macOS.' }
 $Base = Join-Path $env:LOCALAPPDATA 'LLM_in_Word'
@@ -34,10 +34,14 @@ if (!(Test-Path $Pfx)) {
     [IO.File]::WriteAllText((Join-Path $CertDir 'thumbprint.txt'), $Cert.Thumbprint)
 }
 # Trust only this localhost certificate for this Windows user. Windows may prompt.
-Write-Host 'Trusting the localhost certificate for the current user...'
-& certutil.exe -user -f -addstore Root (Join-Path $CertDir 'localhost.cer') | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Could not trust the localhost certificate for the current user.' }
-Write-Host 'Certificate trust installed; staging runtime files...'
+if ($SkipCertificateTrust) {
+    Write-Warning 'OS certificate trust skipped (headless testing only). Word cannot use this install until the certificate is trusted.'
+} else {
+    Write-Host 'Trusting localhost for this user. Confirm the Windows certificate dialog if shown.'
+    & certutil.exe -user -f -addstore Root (Join-Path $CertDir 'localhost.cer') | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Could not trust the localhost certificate for the current user.' }
+}
+Write-Host 'Certificate setup finished; staging runtime files...'
 
 $Stage = Join-Path $Base ('app.stage.' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $Stage | Out-Null

@@ -180,7 +180,7 @@ npm run preview
 
 Browser preview runs at `http://127.0.0.1:8380/taskpane.html`. A normal browser can preview the pane and check backend connectivity; reading and applying Word content requires the actual Word add-in.
 
-Offline regression tests use synthetic text and mock CLIs, with no account credentials. [GitHub Actions](https://github.com/ZJU-OmniAI/LLM_in_Word/actions) runs them on Linux, macOS and Windows. Windows also exercises the installer and lifecycle against a real local HTTPS server. CI does **not** automate the Word desktop application.
+Offline regression tests use synthetic text and mock CLIs, with no account credentials. [GitHub Actions](https://github.com/ZJU-OmniAI/LLM_in_Word/actions) runs them on Linux, macOS and Windows. Windows also exercises the installer and lifecycle against a real local HTTPS server. Headless CI skips the interactive Windows certificate-trust prompt; it verifies HTTPS against the generated certificate explicitly. CI does **not** automate the Word desktop application or validate its certificate dialog.
 
 Optional live backend tests consume provider usage:
 
