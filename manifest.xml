@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  word_edit 的 Office 加载项清单。install.sh 会把它拷进
+  ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/（Word 的侧载目录）。
+  所有地址都指向本机服务 https://localhost:8377（端口改了要连同 server/config.js 一起改）。
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+  <Id>357a0a80-3537-4833-b135-a8177994730f</Id>
+  <Version>0.5.0.0</Version>
+  <ProviderName>omniAI</ProviderName>
+  <DefaultLocale>zh-CN</DefaultLocale>
+  <DisplayName DefaultValue="AI 改写"/>
+  <Description DefaultValue="选中一段正文 → 下指令 → diff 预览 → 一键替换（可走修订模式）。后端调用本机 Claude Code / Codex CLI。"/>
+  <IconUrl DefaultValue="https://localhost:8377/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:8377/assets/icon-80.png"/>
+  <SupportUrl DefaultValue="https://localhost:8377/taskpane.html"/>
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="WordApi" MinVersion="1.3"/>
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:8377/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="WordEdit.Group1">
+                <Label resid="WordEdit.GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="WordEdit.Icon16"/>
+                  <bt:Image size="32" resid="WordEdit.Icon32"/>
+                  <bt:Image size="80" resid="WordEdit.Icon80"/>
+                </Icon>
+                <Control xsi:type="Button" id="WordEdit.TaskpaneButton">
+                  <Label resid="WordEdit.ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="WordEdit.ButtonLabel"/>
+                    <Description resid="WordEdit.ButtonTooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="WordEdit.Icon16"/>
+                    <bt:Image size="32" resid="WordEdit.Icon32"/>
+                    <bt:Image size="80" resid="WordEdit.Icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>WordEdit.Taskpane</TaskpaneId>
+                    <SourceLocation resid="WordEdit.TaskpaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="WordEdit.Icon16" DefaultValue="https://localhost:8377/assets/icon-16.png"/>
+        <bt:Image id="WordEdit.Icon32" DefaultValue="https://localhost:8377/assets/icon-32.png"/>
+        <bt:Image id="WordEdit.Icon80" DefaultValue="https://localhost:8377/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="WordEdit.TaskpaneUrl" DefaultValue="https://localhost:8377/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="WordEdit.GroupLabel" DefaultValue="AI 改写"/>
+        <bt:String id="WordEdit.ButtonLabel" DefaultValue="✦ AI 改写"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="WordEdit.ButtonTooltip" DefaultValue="打开 AI 改写面板：选中一段正文，下指令改写，diff 预览后一键替换（可走修订模式）。"/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

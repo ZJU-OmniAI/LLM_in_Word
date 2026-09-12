@@ -1,0 +1,37 @@
+# Dependencies and generated output
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Local backups, runtime state and logs
+.backups/
+.word_edit/
+*.log
+*.pid
+*.tar.gz
+*.zip
+
+# Local credentials and certificates
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+cert/
+
+# OS/editor/agent files
+.DS_Store
+._*
+.idea/
+.vscode/
+.codex/
+.agents/
+
+# Documents and attachments are not source code
+*.doc
+*.docx
+*.pdf
+*.xlsx
+*.pptx

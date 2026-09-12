@@ -1,0 +1,82 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { JSDOM } from 'jsdom';
+const html = readFileSync(new URL('../taskpane/taskpane.html', import.meta.url), 'utf8');
+const js = readFileSync(new URL('../taskpane/taskpane.js', import.meta.url), 'utf8');
+const table = readFileSync(new URL('../taskpane/table-utils.js', import.meta.url), 'utf8');
+const context = { ok: true, ids: [1], kinds: ['text'], valuesList: [null], targetTexts: ['原文'], fullText: '原文', docChars: 2 };
+const answer = '```text\n新文本\n```';
+function setup(responseEvents, { trailingNewline = true, hold = false } = {}) {
+  const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://localhost:8377/taskpane.html', pretendToBeVisual: true });
+  const w = dom.window, calls = [];
+  w.TextDecoder = TextDecoder; w.AbortController = AbortController;
+  w.Office = { onReady() {} };
+  let releaseContext;
+  w.__context = hold ? new Promise(r => { releaseContext = r; }) : Promise.resolve({ ...context });
+  w.fetch = async (url, options) => {
+    if (url === '/api/chat') {
+      calls.push(JSON.parse(options.body));
+      const text = responseEvents.map(JSON.stringify).join('\n') + (trailingNewline ? '\n' : '');
+      return new Response(text, { status: 200 });
+    }
+    if (url.startsWith('/api/health')) return { ok: true, json: async () => ({ backends: { claude: { label: '已登录', status: 'ready', path: '/mock', hint: 'ok' }, codex: { label: '已登录', status: 'ready', path: '/mock', hint: 'ok' } }, version: 'test', logPath: '/tmp/log' }) };
+    if (url.startsWith('/api/models')) return { ok: true, json: async () => ({ claude: [['sonnet', 'Sonnet']], codex: [['(default)', '默认']], fetchedAt: new Date().toISOString() }) };
+    return { ok: true, json: async () => ({ ok: true }) };
+  };
+  w.eval(table);
+  w.eval(js.replace('  init();', `  init();
+    getEditContext = () => window.__context;
+    getWholeDoc = () => window.__context;
+    window.ui = { state, sendInstruction, renderTargetBar, fillModelOptions, stopStream, contextKey };
+  `));
+  w.ui.state.wordReady = true; w.ui.state.serverOk = true;
+  w.ui.state.targets = [{ ccId: 1, text: '原文', kind: 'text' }];
+  w.ui.renderTargetBar();
+  return { w, calls, releaseContext, close: async () => { await new Promise(r => setImmediate(r)); dom.window.close(); }, input: w.document.querySelector('#input') };
+}
+const good = [{ type: 'delta', text: answer }, { type: 'cli_session', backend: 'claude', id: 'sid' }, { type: 'done', ok: true }];
+test('successful stream without final newline creates an apply card', async () => {
+  const t = setup(good, { trailingNewline: false });
+  try { await t.w.ui.sendInstruction('润色'); assert.ok(t.w.document.querySelector('.apply')); assert.equal(t.w.ui.state.streaming, false); } finally { await t.close(); }
+});
+for (const [name, events] of [['EOF before done', [{ type: 'delta', text: answer }]], ['error after body', [{ type: 'delta', text: answer }, { type: 'error', error: '失败' }, { type: 'done', ok: false }]]]) {
+  test(`${name}: partial fenced output cannot be applied and can be retried`, async () => {
+    const t = setup(events);
+    try { await t.w.ui.sendInstruction('润色'); assert.equal(t.w.document.querySelector('.apply'), null); assert.ok(t.w.document.querySelector('.warnbox')); assert.equal(t.w.ui.state.cliSession.claude, null); assert.equal(t.w.ui.state.messages.at(-1).failed, true); } finally { await t.close(); }
+  });
+}
+test('missing target or Office preserves the input draft', async () => {
+  const t = setup(good);
+  try { t.input.value = '不要丢掉我的指令'; t.w.ui.state.wordReady = false; t.w.document.querySelector('#btn-send').click(); assert.equal(t.input.value, '不要丢掉我的指令'); assert.equal(t.calls.length, 0); t.w.ui.state.wordReady = true; t.w.ui.state.targets = []; t.w.document.querySelector('#btn-send').click(); assert.equal(t.input.value, '不要丢掉我的指令'); } finally { await t.close(); }
+});
+test('composition Enter does not send Chinese input', async () => {
+  const t = setup(good);
+  try { t.input.value = '中文输入'; t.input.dispatchEvent(new t.w.KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })); assert.equal(t.calls.length, 0); assert.equal(t.input.value, '中文输入'); } finally { await t.close(); }
+});
+test('context acquisition is locked against double send and cancel prevents generation', async () => {
+  const t = setup(good, { hold: true });
+  try {
+    const first = t.w.ui.sendInstruction('润色');
+    await t.w.ui.sendInstruction('重复'); assert.equal(t.w.ui.state.streaming, true);
+    t.w.ui.stopStream(); t.releaseContext({ ...context }); await first;
+    assert.equal(t.calls.length, 0); assert.equal(t.w.ui.state.streaming, false);
+  } finally { await t.close(); }
+});
+test('same context resumes; changed document rebuilds with full context', async () => {
+  const t = setup(good);
+  try {
+    await t.w.ui.sendInstruction('第一次'); await t.w.ui.sendInstruction('再精简');
+    assert.equal(t.calls[1].cliSession.claude, 'sid');
+    t.w.__context = Promise.resolve({ ...context, fullText: '正文发生了变化' });
+    await t.w.ui.sendInstruction('继续'); assert.equal(t.calls[2].cliSession.claude, null); assert.equal(t.calls[2].doc.fullText, '正文发生了变化');
+  } finally { await t.close(); }
+});
+test('Codex effort options omit unsupported max and settings preserve saved model', async () => {
+  const t = setup(good);
+  try { t.w.ui.state.cfg.backend = 'codex'; t.w.ui.state.cfg.model_codex = 'my-model'; t.w.ui.fillModelOptions(); assert.equal(t.w.document.querySelector('#sel-model').value, 'my-model'); assert.equal(t.w.document.querySelector('#sel-effort option[value="max"]'), null); } finally { await t.close(); }
+});
+test('new draft persists while request is generating', async () => {
+  const t = setup(good, { hold: true });
+  try { t.input.value = '发送的内容'; const req = t.w.ui.sendInstruction('发送的内容'); t.input.value = '下一轮草稿'; t.input.dispatchEvent(new t.w.Event('input')); t.releaseContext({ ...context }); await req; assert.equal(t.input.value, '下一轮草稿'); assert.equal(t.w.localStorage.getItem('we:draft:untitled'), '下一轮草稿'); } finally { await t.close(); }
+});

@@ -1,0 +1,29 @@
+{
+  "name": "word_edit",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "桌面版 Word 的 AI 改写加载项：选中一段 → 下指令 → diff 预览 → 一键替换（可走修订模式），后端调本机 claude/codex CLI",
+  "scripts": {
+    "server": "node server/server.js",
+    "test": "node tools/test-format.js && node tools/test-table.js && node --test tools/test-backend.js tools/test-ui.js",
+    "test:live": "node tools/test-server.js",
+    "test:live:codex": "node tools/test-server.js --codex",
+    "preview": "WORD_EDIT_PORT=8380 WORD_EDIT_CERT_DIR=/tmp/word-edit-no-cert node server/server.js",
+    "update": "./install.sh --update-only"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "keywords": [
+    "word-addin",
+    "office-js",
+    "claude-code",
+    "codex",
+    "writing-assistant"
+  ]
+}
