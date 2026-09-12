@@ -10,7 +10,7 @@ Select a passage, describe what you want to change, review the differences, and 
 
 ![Selecting a paragraph and describing an edit in desktop Word](docs/images/word-selection.jpg)
 
-*Real macOS Word, synthetic demo text, and the LLM_in_Word side pane. The interface currently uses Chinese labels.*
+*Real macOS Word, synthetic demo text, and the LLM_in_Word side pane. These screenshots show the Chinese interface; choose English in the pane header for English controls.*
 
 ## What you can do
 
@@ -18,16 +18,17 @@ Select a passage, describe what you want to change, review the differences, and 
 | --- | --- |
 | Rewrite selected passages | Polish academic writing, shorten a paragraph, translate, adjust tone, or fix grammar. |
 | Review before applying | See additions and deletions in the side pane. Nothing is written into Word until you choose Apply. |
-| Use Word tracked changes | Keep the **保留修订** option enabled, then accept or reject edits in Word's Review tab. |
+| Use Word tracked changes | Keep the **Track changes** option enabled, then accept or reject edits in Word's Review tab. |
 | Edit several targets | Add up to **eight** separate passages or tables, then give one instruction that covers them all. |
 | Work with tables | Revise cell text and preview table differences, or turn selected text into a table. |
-| Ask about a document | Use **文档问答** to summarize, explain, or find inconsistencies without replacing text. |
+| Ask about a document | Use **Document Q&A** to summarize, explain, or find inconsistencies without replacing text. |
 | Continue a conversation | Refine an answer, keep input drafts, revisit local conversation history, or export a conversation as Markdown. |
+| Switch interface language | Choose English or 中文 without restarting the pane. |
 | Choose your writing engine | Switch between Claude Code and Codex; choose a model and its supported reasoning effort. |
 | Add references | Attach text, Markdown, CSV, PDF, or image files. Support depends on the chosen CLI and model. |
 | Diagnose and recover | Inspect CLI paths, versions and login status; stop generation or retry failures. |
 
-The side pane currently uses Chinese labels. Both Chinese and English documents and instructions are supported; the label guide below explains the controls for English readers.
+The side pane supports **English and Simplified Chinese**. Choose **English / 中文** in the header to switch immediately; your choice is remembered. On first use it follows the available Word display language, falling back to the browser language (English for other languages). Switching preserves drafts, attachments, targets, and existing responses. Document text and past model responses are not translated. The language selector is temporarily disabled while a request is running.
 
 ## See the workflow in Word
 
@@ -57,7 +58,7 @@ Use a current **Microsoft 365 desktop Word** with Office web add-ins enabled. Th
 You need:
 
 1. **Node.js 22.12+ on the 22.x line, or Node.js 24+.** Install from [Node.js](https://nodejs.org/en/download).
-2. **Git**, or an extracted ZIP of this repository. While the repository is private, your GitHub account needs access.
+2. **Git**, or an extracted ZIP of this repository. The repository is public; downloading it does not require a GitHub account.
 3. At least one local, authenticated CLI: [Claude Code setup](https://code.claude.com/docs/en/setup) or [Codex CLI](https://github.com/openai/codex).
 
 In the terminal of the same OS/user that runs Word, verify the CLI you intend to use:
@@ -121,14 +122,14 @@ Quit Word with **Cmd+Q**, reopen it, then choose **Home → Add-ins → Develope
 ## Your first edit
 
 1. Open a disposable copy of a Word document and open the **LLM_in_Word** side pane.
-2. Choose **Claude Code** or **Codex**. Click the connection indicator if the selected backend needs attention.
-3. Select a paragraph in the document. Click **添加 Word 选中内容** to add it as a target; add more selections if needed.
+2. Select **English** in the header if needed. Choose **Claude Code** or **Codex**. Click the connection indicator if the selected backend needs attention.
+3. Select a paragraph in the document. Click **Add Word selection** to add it as a target; add more selections if needed.
 4. Enter an instruction, such as **“Make this paragraph more concise. Keep the meaning and all numbers unchanged.”**
-5. Click **生成改写**. The response streams into the pane; you can stop a request while it runs.
-6. Inspect the diff. Keep **保留修订** enabled and click the apply button on the result card.
+5. Click **Rewrite**. The response streams into the pane; you can stop a request while it runs.
+6. Inspect the diff. Keep **Track changes** enabled and click the apply button on the result card.
 7. Review the actual changes in Word. Accept or reject them using Word's **Review** controls.
 
-For document questions, switch to **文档问答** and ask, for example, “Summarize the document in five bullets.” For follow-up edits, describe the next change in the same conversation. If the document or targets change, the tool rebuilds context rather than reusing stale context.
+For document questions, switch to **Document Q&A** and ask, for example, “Summarize the document in five bullets.” For follow-up edits, describe the next change in the same conversation. If the document or targets change, the tool rebuilds context rather than reusing stale context.
 
 | Chinese control | Meaning |
 | --- | --- |

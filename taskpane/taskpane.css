@@ -339,3 +339,12 @@ button:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:fo
 @media(max-height:690px) { .welcome { display:none; } }
 
 .model-detail { margin-top:7px; color:#64725e; font-size:10px; line-height:1.5; overflow-wrap:anywhere; }
+
+.language-select { flex:0 0 auto; width:70px; min-width:0; padding:4px 2px; border:1px solid #dce4d7; border-radius:6px; background:#fff; color:#53634c; font:inherit; font-size:10px; }
+html[lang="en"] .engine-footer { flex-wrap:wrap; }
+html[lang="en"] .composer-caption { flex-wrap:wrap; gap:3px 10px; }
+html[lang="en"] .card-head { flex-wrap:wrap; }
+@media (max-width:380px) {
+  html[lang="en"] .brand-sub { display:none; }
+  html[lang="en"] .workspace-toolbar { flex-wrap:wrap; gap:6px; }
+}

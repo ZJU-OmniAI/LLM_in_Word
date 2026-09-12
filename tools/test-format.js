@@ -13,6 +13,7 @@ const pageHtml = readFileSync(path.join(ROOT, 'taskpane', 'taskpane.html'), 'utf
 const paneJs = readFileSync(path.join(ROOT, 'taskpane', 'taskpane.js'), 'utf8');
 
 const dom = new JSDOM(pageHtml, { runScripts: 'outside-only', url: 'https://localhost:8377/taskpane.html' });
+dom.window.eval(readFileSync(path.join(ROOT, 'taskpane', 'i18n.js'), 'utf8'));
 dom.window.eval(paneJs);
 const T = dom.window.__we_test;
 if (!T) { console.error('❌ 测试钩子 __we_test 没暴露出来'); process.exit(1); }

@@ -6,6 +6,9 @@
 (() => {
   'use strict';
 
+  const tr = window.WordI18n.t;
+  const uiText = window.WordI18n.known;
+
   const TAG = 'word_edit_target'; // Stable legacy tag preserves existing document targets. // 目标内容控件的标记，靠它跨会话找回目标
   const API = ''; // 面板和服务同源，相对路径即可
 
@@ -105,8 +108,8 @@
     }
     if (btn) {
       const old = btn.textContent;
-      btn.textContent = ok ? '✓ 已复制' : '✗ 失败';
-      setTimeout(() => { btn.textContent = old; }, 1500);
+      btn.textContent = ok ? tr('✓ 已复制') : tr('✗ 失败');
+      setTimeout(() => { btn.textContent = uiText(old); }, 1500);
     }
     return ok;
   }
@@ -413,7 +416,7 @@
   function trimMsgs(msgs) {
     return msgs.slice(-40).map((m) => ({
       role: m.role,
-      content: m.content.length > 20000 ? m.content.slice(0, 20000) + '…（存档截断）' : m.content,
+      content: m.content.length > 20000 ? m.content.slice(0, 20000) + tr('…（存档截断）') : m.content,
       via: m.via, failed: !!m.failed,
     }));
   }
@@ -458,10 +461,10 @@
     };
   }
   function sessionMarkdown(messages) {
-    const lines = [`# ${docTitle() || 'Word 文档'}`, '', `> 导出自 LLM_in_Word · ${new Date().toLocaleString()}`, ''];
+    const lines = [`# ${docTitle() || tr('Word 文档')}`, '', tr`> 导出自 LLM_in_Word · ${new Date().toLocaleString()}`, ''];
     for (const m of messages) {
-      if (m.role === 'user') lines.push('## 🙋 用户', '', m.content, '');
-      else lines.push(`## 🤖 助手${m.via ? `（${[m.via.backend, m.via.model, 'effort ' + m.via.effort].filter(Boolean).join(' · ')}）` : ''}`, '', m.content, '');
+      if (m.role === 'user') lines.push(tr('## 🙋 用户'), '', m.content, '');
+      else lines.push(tr`## 🤖 助手${m.via ? `（${[m.via.backend, m.via.model, 'effort ' + m.via.effort].filter(Boolean).join(' · ')}）` : ''}`, '', m.content, '');
     }
     return lines.join('\n');
   }
@@ -478,7 +481,7 @@
       let msg = String(e?.message || e);
       if (e && e.code) msg = `${e.code}: ${msg}`;
       if (/GeneralException|InvalidArgument/i.test(msg)) {
-        msg += '（这段选区可能跨表格/文本框等复杂结构，试试只选连续的正文段落）';
+        msg += tr('（这段选区可能跨表格/文本框等复杂结构，试试只选连续的正文段落）');
       }
       return { ok: false, error: msg };
     });
@@ -537,7 +540,7 @@
       state.docChars = r.docChars;
       renderTargetBar();
     } else if (!quiet) {
-      addNote('⚠️ 读取目标失败：' + escapeHtml(r.error));
+      addNote(tr('⚠️ 读取目标失败：') + escapeHtml(uiText(r.error)));
     }
     return r;
   }
@@ -545,7 +548,7 @@
   // 🎯 把当前选中添加为一个目标段（可多次，多段分散）。
   // 表格支持：光标/选区在表格里 → 整张表作为一个"表格目标"（内容按 Markdown 表格喂给模型）。
   async function addTarget() {
-    if (state.targets.length >= MAX_TARGETS) { addNote(`⚠️ 目标最多 ${MAX_TARGETS} 段`); return; }
+    if (state.targets.length >= MAX_TARGETS) { addNote(tr`⚠️ 目标最多 ${MAX_TARGETS} 段`); return; }
     const r = await wordRun(async (ctx) => {
       const sel = ctx.document.getSelection();
       const getSel = queueText(sel);
@@ -565,9 +568,9 @@
         const values = pt.values || [];
         cols = values[0] ? values[0].length : 0;
         rows = values.length;
-        if (!rows || !cols) return { ok: false, error: '这张表格读不到内容' };
+        if (!rows || !cols) return { ok: false, error: tr('这张表格读不到内容') };
         if (values.some((row) => row.length !== cols)) {
-          return { ok: false, error: '这张表格含合并单元格，暂不支持作为目标（可先取消合并）' };
+          return { ok: false, error: tr('这张表格含合并单元格，暂不支持作为目标（可先取消合并）') };
         }
         targetRange = pt.getRange('Whole');
         isTable = true;
@@ -575,7 +578,7 @@
         const text = normNL(getSel());
         if (!text.trim()) return { ok: false, error: 'empty' };
         if (selTabs.items.length) {
-          return { ok: false, error: '选区里混着表格：表格请单独添加（点表格内任意位置再点 🎯），正文和表格分开作为目标' };
+          return { ok: false, error: tr('选区里混着表格：表格请单独添加（点表格内任意位置再点 🎯），正文和表格分开作为目标') };
         }
       }
       // 和已有目标重叠的选区不收（嵌套锚点会乱）
@@ -585,27 +588,27 @@
         for (const rel of rels) {
           const v = rel.value;
           if (v !== 'Before' && v !== 'After' && v !== 'AdjacentBefore' && v !== 'AdjacentAfter' && v !== 'Unrelated') {
-            return { ok: false, error: '这段选区和已有目标重叠，先 ✕ 掉那个目标，或换一段' };
+            return { ok: false, error: tr('这段选区和已有目标重叠，先 ✕ 掉那个目标，或换一段') };
           }
         }
       }
       const cc = targetRange.insertContentControl();
       cc.tag = TAG;
-      cc.title = 'LLM_in_Word 改写目标';
+      cc.title = tr('LLM_in_Word 改写目标');
       cc.appearance = 'Hidden';
       await ctx.sync();
       return { ok: true, isTable, rows, cols };
     });
     if (!r.ok) {
-      if (r.error === 'empty') addNote('⚠️ 文档里还没有选中内容。先在正文里<b>拖选一段文字</b>（或点进表格）再点 🎯。');
-      else addNote('⚠️ 添加目标失败：' + escapeHtml(r.error));
+      if (r.error === 'empty') addNote(tr('⚠️ 文档里还没有选中内容。先在正文里<b>拖选一段文字</b>（或点进表格）再点 🎯。'));
+      else addNote(tr('⚠️ 添加目标失败：') + escapeHtml(uiText(r.error)));
       return;
     }
     await refreshTargets();
     const n = state.targets.length;
     addNote(r.isTable
-      ? `📊 已把整张表格（${r.rows}×${r.cols}）添加为目标（当前共 ${n} 段）。可以下指令改单元格内容、增删行等。`
-      : `🎯 已添加目标（当前共 ${n} 段${n > 1 ? '，按文档顺序编号' : ''}）。可继续选中别处再点 🎯 添加，或直接下指令。`);
+      ? tr`📊 已把整张表格（${r.rows}×${r.cols}）添加为目标（当前共 ${n} 段）。可以下指令改单元格内容、增删行等。`
+      : tr`🎯 已添加目标（当前共 ${n} 段${n > 1 ? tr('，按文档顺序编号') : ''}）。可继续选中别处再点 🎯 添加，或直接下指令。`);
     els.input.focus();
   }
 
@@ -613,7 +616,7 @@
   async function restoreTarget() {
     await refreshTargets(true);
     if (state.targets.length) {
-      addNote(`🎯 已从文档恢复上次设的 ${state.targets.length} 段目标（不想要就点 ✕ 清除）`);
+      addNote(tr`🎯 已从文档恢复上次设的 ${state.targets.length} 段目标（不想要就点 ✕ 清除）`);
     }
   }
 
@@ -647,12 +650,12 @@
       const ccs = getTargetCC(ctx);
       await ctx.sync();
       const cc = ccs.items.find((c) => c.id === ccId);
-      if (!cc) return { ok: false, error: '这个目标的锚点不在了，请重新添加' };
+      if (!cc) return { ok: false, error: tr('这个目标的锚点不在了，请重新添加') };
       cc.getRange('Whole').select('Select');
       await ctx.sync();
       return { ok: true };
     });
-    if (!r.ok) addNote('⚠️ ' + escapeHtml(r.error));
+    if (!r.ok) addNote('⚠️ ' + escapeHtml(uiText(r.error)));
   }
 
   // 组"改写模式"的文档上下文：全文 + 各目标段标记，超长时截取目标周边。
@@ -661,7 +664,7 @@
     return await wordRun(async (ctx) => {
       const ccs = getTargetCC(ctx);
       await ctx.sync();
-      if (!ccs.items.length) return { ok: false, error: '目标在文档里找不到了（锚定控件被删除），请重新选中并添加目标' };
+      if (!ccs.items.length) return { ok: false, error: tr('目标在文档里找不到了（锚定控件被删除），请重新选中并添加目标') };
       const body = ctx.document.body;
       const gaps = [];     // 目标之间（含首尾）的间隔文本 getter，长度 = 目标数 + 1
       const tgts = [];     // 各目标文本 getter
@@ -684,7 +687,7 @@
       const kinds = tableObjs.map((t) => (t ? 'table' : 'text'));
       const valuesList = tableObjs.map((t) => (t ? (t.values || []) : null));
       const targetTexts = tgts.map((g, i) => (kinds[i] === 'table' ? TableUtils.toMarkdown(valuesList[i]) : normNL(g())));
-      if (targetTexts.every((t) => !t.trim())) return { ok: false, error: '目标段现在都是空的，请重新选中并添加目标' };
+      if (targetTexts.every((t) => !t.trim())) return { ok: false, error: tr('目标段现在都是空的，请重新选中并添加目标') };
       const gapTexts = gaps.map((g) => normNL(g()));
       const ids = ccs.items.map((cc) => cc.id);
       return { ok: true, ids, targetTexts, kinds, valuesList, ...markFullText(gapTexts, targetTexts) };
@@ -725,7 +728,7 @@
       let t = normNL(get());
       const docChars = t.length;
       let truncated = false;
-      if (t.length > CTX_CAP) { t = t.slice(0, CTX_CAP) + '\n…（过长已截断）'; truncated = true; }
+      if (t.length > CTX_CAP) { t = t.slice(0, CTX_CAP) + tr('\n…（过长已截断）'); truncated = true; }
       return { ok: true, fullText: t, truncated, docChars };
     });
   }
@@ -741,7 +744,7 @@
       const ccs = getTargetCC(ctx);
       await ctx.sync();
       const cc = ccs.items.find((c) => c.id === ccId);
-      if (!cc) return { ok: false, error: '这个目标已丢失（锚定控件被删除），请重新选中并添加目标' };
+      if (!cc) return { ok: false, error: tr('这个目标已丢失（锚定控件被删除），请重新选中并添加目标') };
       const tk = state.targets.find((t) => t.ccId === ccId);
       const ccTabs = cc.getRange('Whole').tables;
       ccTabs.load('items');
@@ -785,7 +788,7 @@
         let tblMode;
         if (newCols === oldCols && oldCols > 0) {
           // 单元格级更新：先加行+改格（一批），再删多余行；失败报出卡在哪一步
-          let step = '加行/改单元格';
+          let step = tr('加行/改单元格');
           try {
             if (newRows > oldRows) table.addRows('End', newRows - oldRows, nv.slice(oldRows));
             const lim = Math.min(oldRows, newRows);
@@ -798,7 +801,7 @@
             }
             await ctx.sync();
             if (newRows < oldRows) {
-              step = '删多余行';
+              step = tr('删多余行');
               const rows = table.rows;
               rows.load('items');
               await ctx.sync();
@@ -808,7 +811,7 @@
             tblMode = 'cells';
           } catch (e) {
             await trackOffSafe();
-            return { ok: false, error: `表格更新失败（${step}）：${String(e?.message || e)}。已写入的部分可用撤销快捷键恢复（Windows: Ctrl+Z；Mac: Cmd+Z）` };
+            return { ok: false, error: tr`表格更新失败（${step}）：${String(e?.message || e)}。已写入的部分可用撤销快捷键恢复（Windows: Ctrl+Z；Mac: Cmd+Z）` };
           }
         } else {
           // 列数变了：原表后插新表（Word 原生 insertTable，行列和内容一次建好），再删原表
@@ -818,7 +821,7 @@
             await ctx.sync();
           } catch (e) {
             await trackOffSafe();
-            return { ok: false, error: `表格重建失败：${String(e?.message || e)}` };
+            return { ok: false, error: tr`表格重建失败：${String(e?.message || e)}` };
           }
           tblMode = 'rebuild';
         }
@@ -839,7 +842,7 @@
           await ctx.sync();
         } catch (e) {
           await trackOffSafe();
-          return { ok: false, error: `插入表格失败：${String(e?.message || e)}` };
+          return { ok: false, error: tr`插入表格失败：${String(e?.message || e)}` };
         }
         if (trackTemp) { doc.changeTrackingMode = 'Off'; }
         cc.delete(true);
@@ -877,10 +880,10 @@
       return await Promise.race([
         (async () => {
           const resp = await fetch(API + url, { cache: 'no-store', signal: ac.signal });
-          if (!resp.ok) throw new Error('服务返回 HTTP ' + resp.status);
+          if (!resp.ok) throw new Error(tr('服务返回 HTTP ') + resp.status);
           return resp.json();
         })(),
-        new Promise((_, reject) => { timer = setTimeout(() => { ac.abort(); reject(new Error('连接超时，请重试')); }, timeout); }),
+        new Promise((_, reject) => { timer = setTimeout(() => { ac.abort(); reject(new Error(tr('连接超时，请重试'))); }, timeout); }),
       ]);
     } finally { clearTimeout(timer); }
   }
@@ -895,11 +898,11 @@
     const backend = state.health?.backends?.[state.cfg.backend];
     const ready = state.serverOk && (!backend || ['ready', 'unknown'].includes(backend.status));
     els.statusDot.className = 'dot ' + (ready ? 'ok' : state.serverOk === null ? '' : 'bad');
-    els.statusText.textContent = state.serverOk === false ? '服务未连接' : state.serverOk === null ? '正在连接' : backend ? backend.label : '服务已连接';
+    els.statusText.textContent = state.serverOk === false ? tr('服务未连接') : state.serverOk === null ? tr('正在连接') : backend ? uiText(backend.label) : tr('服务已连接');
     if (state.serverOk === false) {
-      els.banner.textContent = '本机服务暂时无法连接。打开连接设置查看恢复方法，输入草稿会保留。';
+      els.banner.textContent = tr('本机服务暂时无法连接。打开连接设置查看恢复方法，输入草稿会保留。');
     } else if (!state.wordReady) {
-      els.banner.textContent = '请在 Word 的「LLM_in_Word」加载项中使用。此处可预览界面、检查后端连接。';
+      els.banner.textContent = tr('请在 Word 的「LLM_in_Word」加载项中使用。此处可预览界面、检查后端连接。');
     } else if (backend && ['missing', 'auth', 'error'].includes(backend.status)) {
       els.banner.textContent = backend.hint;
     } else { els.banner.classList.add('hidden'); return; }
@@ -908,19 +911,19 @@
   async function diagnose(force = true) {
     const button = $('#btn-diagnose');
     if (button.disabled) return;
-    button.disabled = true; button.textContent = '检测中…';
+    button.disabled = true; button.textContent = tr('检测中…');
     try {
       state.health = await fetchJson('/api/health' + (force ? '?refresh=1' : ''), 15000);
       state.serverOk = true;
       const health = state.health;
       $('#connection-details').innerHTML = ['claude', 'codex'].map((id) => {
         const b = health.backends[id];
-        return `<div class="connection-card ${b.status === 'ready' ? 'ready' : ''}"><h3>${id === 'claude' ? 'Claude Code' : 'Codex'}<span class="health-badge">${escapeHtml(b.label)}</span></h3><code>${escapeHtml(b.version || '版本未知')}<br>${escapeHtml(b.path)}</code><p>${escapeHtml(b.hint)}</p></div>`;
-      }).join('') + `<p class="settings-footnote">本机服务 v${escapeHtml(health.version)} · ${health.https ? 'HTTPS' : 'HTTP 调试'} · ${health.proxyConfigured ? '已配置代理' : '未配置代理'}</p><p class="settings-footnote">日志：${escapeHtml(health.logPath)}</p>`;
+        return `<div class="connection-card ${b.status === 'ready' ? 'ready' : ''}"><h3>${id === 'claude' ? 'Claude Code' : 'Codex'}<span class="health-badge">${escapeHtml(uiText(b.label))}</span></h3><code>${escapeHtml(b.version || tr('版本未知'))}<br>${escapeHtml(b.path)}</code><p>${escapeHtml(uiText(b.hint))}</p></div>`;
+      }).join('') + tr`<p class="settings-footnote">本机服务 v${escapeHtml(health.version)} · ${health.https ? 'HTTPS' : tr('HTTP 调试')} · ${health.proxyConfigured ? tr('已配置代理') : tr('未配置代理')}</p><p class="settings-footnote">日志：${escapeHtml(health.logPath)}</p>`;
     } catch (e) {
-      $('#connection-details').innerHTML = `<div class="connection-card"><h3>连接检测未完成</h3><p>${escapeHtml(e.message)}</p><p>在项目目录运行 npm run update，或在终端重启服务：</p><code>npm run update</code></div>`;
+      $('#connection-details').innerHTML = tr`<div class="connection-card"><h3>连接检测未完成</h3><p>${escapeHtml(uiText(e.message))}</p><p>在项目目录运行 npm run update，或在终端重启服务：</p><code>npm run update</code></div>`;
     } finally {
-      button.disabled = false; button.textContent = '重新检测'; refreshStatusUI();
+      button.disabled = false; button.textContent = tr('重新检测'); refreshStatusUI();
     }
   }
   function saveDraft() { try { localStorage.setItem('we:draft:' + docKey, els.input.value); } catch {} }
@@ -953,13 +956,13 @@
   }
   function footHtml(via) {
     if (!via) return '';
-    return `<div class="foot">${escapeHtml([via.backend, via.model, 'effort ' + via.effort, via.resumed ? '♻️缓存续写' : ''].filter(Boolean).join(' · '))}</div>`;
+    return `<div class="foot">${escapeHtml([via.backend, via.model, 'effort ' + via.effort, via.resumed ? tr('♻️缓存续写') : ''].filter(Boolean).join(' · '))}</div>`;
   }
   function renderWelcome() {
     if ($('#welcome')) return;
     const welcome = document.createElement('div');
     welcome.id = 'welcome'; welcome.className = 'welcome';
-    welcome.innerHTML = '<div class="welcome-icon" aria-hidden="true">✦</div><h2>好文字，从一个想法开始</h2><p>选中一段文字，告诉我你的想法。<br>润色、精简，或让表达更准确。</p><div class="welcome-flow"><span>选择内容</span><b>→</b><span>描述想法</span><b>→</b><span>预览与应用</span></div>';
+    welcome.innerHTML = tr('<div class="welcome-icon" aria-hidden="true">✦</div><h2>好文字，从一个想法开始</h2><p>选中一段文字，告诉我你的想法。<br>润色、精简，或让表达更准确。</p><div class="welcome-flow"><span>选择内容</span><b>→</b><span>描述想法</span><b>→</b><span>预览与应用</span></div>');
     els.messages.appendChild(welcome);
   }
 
@@ -970,18 +973,18 @@
     $('#btn-clear').classList.toggle('hidden', !ts.length);
     els.targetList.innerHTML = '';
     if (!ts.length) {
-      els.targetInfo.innerHTML = '<span class="muted">支持多个段落，也可以添加整张表格。</span>';
+      els.targetInfo.innerHTML = tr('<span class="muted">支持多个段落，也可以添加整张表格。</span>');
       els.targetBar.classList.add('empty');
       return;
     }
     els.targetBar.classList.remove('empty');
     const total = ts.reduce((s, t) => s + t.text.length, 0);
-    const warn = total > SOFT_SEL_LIMIT ? ' · <b class="warn">⚠️ 目标过大，建议缩小</b>' : '';
+    const warn = total > SOFT_SEL_LIMIT ? tr(' · <b class="warn">⚠️ 目标过大，建议缩小</b>') : '';
     const cacheOn = state.cliSession[state.cfg.backend];
     const ctxInfo = cacheOn
-      ? ' · 可续聊'
-      : state.docChars ? ` · 随请求附全文 ~${Math.max(1, Math.round(state.docChars / 1000))}k 字符` : '';
-    els.targetInfo.innerHTML = `已选 ${ts.length} 处 · ${total} 字符${ctxInfo}${warn}`;
+      ? tr(' · 可续聊')
+      : state.docChars ? tr` · 随请求附全文 ~${Math.max(1, Math.round(state.docChars / 1000))}k 字符` : '';
+    els.targetInfo.innerHTML = tr`已选 ${ts.length} 处 · ${total} 字符${ctxInfo}${warn}`;
     ts.forEach((t, i) => {
       const row = document.createElement('div');
       row.className = 'tgt-row';
@@ -991,16 +994,16 @@
       row.innerHTML =
         `<span class="tgt-k">${i + 1}</span>` +
         `<span class="tgt-prev" title="${escapeHtml(p.slice(0, 300))}">${isTbl ? '📊 ' : ''}${escapeHtml(p.length > 60 ? p.slice(0, 60) + '…' : p)}</span>` +
-        `<span class="tgt-len">${isTbl ? `表格 ${dims}` : `${t.text.length}字`}${t.applied ? ' <b class="applied">✓</b>' : ''}</span>`;
+        `<span class="tgt-len">${isTbl ? tr`表格 ${dims}` : tr`${t.text.length}字`}${t.applied ? ' <b class="applied">✓</b>' : ''}</span>`;
       const loc = document.createElement('button');
       loc.className = 'ibtn';
       loc.textContent = '📍';
-      loc.title = '在文档里定位这段';
+      loc.title = tr('在文档里定位这段');
       loc.addEventListener('click', () => revealTarget(t.ccId));
       const del = document.createElement('button');
       del.className = 'ibtn';
       del.textContent = '✕';
-      del.title = '移除这个目标';
+      del.title = tr('移除这个目标');
       del.addEventListener('click', () => removeTarget(t.ccId));
       row.append(loc, del);
       els.targetList.appendChild(row);
@@ -1020,9 +1023,9 @@
     return state.attachments.filter((a) => a.kind === 'binary').reduce((s, a) => s + a.size, 0);
   }
   function canAddFile(size, isBin) {
-    if (state.attachments.length >= MAX_FILES) return `附件最多 ${MAX_FILES} 个`;
-    if (isBin && size > BIN_CAP) return `单个图片/PDF 最大 ${fmtSize(BIN_CAP)}`;
-    if (isBin && totalBinBytes() + size > TOTAL_BIN_CAP) return `图片/PDF 合计超过 ${fmtSize(TOTAL_BIN_CAP)}`;
+    if (state.attachments.length >= MAX_FILES) return tr`附件最多 ${MAX_FILES} 个`;
+    if (isBin && size > BIN_CAP) return tr`单个图片/PDF 最大 ${fmtSize(BIN_CAP)}`;
+    if (isBin && totalBinBytes() + size > TOTAL_BIN_CAP) return tr`图片/PDF 合计超过 ${fmtSize(TOTAL_BIN_CAP)}`;
     return null;
   }
   function renderAttachChips() {
@@ -1031,10 +1034,10 @@
     for (const a of state.attachments) {
       const chip = document.createElement('span');
       chip.className = 'att-chip';
-      chip.innerHTML = `${attIcon(a)} ${escapeHtml(a.name)} · ${fmtSize(a.size)}${a.truncated ? '（截断）' : ''} `;
+      chip.innerHTML = `${attIcon(a)} ${escapeHtml(a.name)} · ${fmtSize(a.size)}${a.truncated ? tr('（截断）') : ''} `;
       const x = document.createElement('button');
       x.textContent = '✕';
-      x.title = '移除';
+      x.title = tr('移除');
       x.addEventListener('click', () => {
         if (state.streaming) return;
         state.attachments = state.attachments.filter((b) => b.id !== a.id);
@@ -1053,26 +1056,26 @@
       const ext = extOf(f.name);
       const isText = TEXT_EXTS.includes(ext);
       const isBin = !!BIN_EXTS[ext];
-      if (!isText && !isBin) { addNote(`⚠️ 暂不支持 ${escapeHtml(f.name)}（只收 ${TEXT_EXTS.join('/')}/pdf/图片）`); continue; }
+      if (!isText && !isBin) { addNote(tr`⚠️ 暂不支持 ${escapeHtml(f.name)}（只收 ${TEXT_EXTS.join('/')}/pdf/图片）`); continue; }
       const err = canAddFile(f.size, isBin);
       if (err) { addNote('⚠️ ' + escapeHtml(err)); continue; }
       try {
         if (isText) {
           let text = await f.text();
           const truncated = text.length > TEXT_CAP;
-          if (truncated) text = text.slice(0, TEXT_CAP) + '\n…（过长已截断）';
+          if (truncated) text = text.slice(0, TEXT_CAP) + tr('\n…（过长已截断）');
           state.attachments.push({ id: ++attSeq, name: f.name, kind: 'text', mime: 'text/plain', text, size: f.size, truncated });
         } else {
           const b64 = await new Promise((resolve, reject) => {
             const r = new FileReader();
             r.onload = () => resolve(String(r.result).split(',')[1] || '');
-            r.onerror = () => reject(new Error('读取失败'));
+            r.onerror = () => reject(new Error(tr('读取失败')));
             r.readAsDataURL(f);
           });
           state.attachments.push({ id: ++attSeq, name: f.name, kind: 'binary', mime: BIN_EXTS[ext] || f.type, b64, size: f.size });
         }
       } catch (e) {
-        addNote(`⚠️ 读取 ${escapeHtml(f.name)} 失败：${escapeHtml(e.message)}`);
+        addNote(tr`⚠️ 读取 ${escapeHtml(f.name)} 失败：${escapeHtml(uiText(e.message))}`);
       }
     }
     renderAttachChips();
@@ -1097,18 +1100,18 @@
       ? (tk.values || (TableUtils.parseMarkdown(tk.text).ok ? TableUtils.parseMarkdown(tk.text).values : null))
       : null;
     const diff = tableVals ? null : (tk && tk.kind !== 'table' ? diffHtml(tk.text, replacement) : null);
-    const title = tableVals ? '表格预览' : '对比';
+    const title = tableVals ? tr('表格预览') : tr('对比');
     card.innerHTML =
       `<div class="card-head">` +
-      `<span class="card-title">${multi ? `目标 ${tk.k} · ` : ''}${tableVals ? '📊 表格替换' : '替换预览'}</span>` +
-      `<button class="tab active" data-tab="diff">${title}</button><button class="tab" data-tab="new">${tableVals ? '源码' : '新文本'}</button>` +
+      `<span class="card-title">${multi ? tr`目标 ${tk.k} · ` : ''}${tableVals ? tr('📊 表格替换') : tr('替换预览')}</span>` +
+      `<button class="tab active" data-tab="diff">${title}</button><button class="tab" data-tab="new">${tableVals ? tr('源码') : tr('新文本')}</button>` +
       `</div>` +
       `<pre class="card-body diffview">${diff != null ? diff : ''}</pre>` +
       `<pre class="card-body newview hidden">${escapeHtml(replacement)}</pre>` +
       `<div class="card-actions">` +
-      `<button class="btn btn-primary apply">✅ 应用</button>` +
-      `<button class="btn copy">📋 复制</button>` +
-      (multi ? '' : `<button class="btn retry" title="用同样的指令重新生成">🔁 重试</button>`) +
+      tr`<button class="btn btn-primary apply">✅ 应用</button>` +
+      tr`<button class="btn copy">📋 复制</button>` +
+      (multi ? '' : tr`<button class="btn retry" title="用同样的指令重新生成">🔁 重试</button>`) +
       `<span class="card-status"></span>` +
       `</div>`;
     bubble.appendChild(card);
@@ -1122,22 +1125,22 @@
       const d = TableUtils.diffCells(oldVals, tableVals);
       const notes = [];
       if (oldVals) {
-        if (d.changed.length) notes.push(`改动 ${d.changed.length} 个单元格`);
-        if (d.rowsAdded) notes.push(`新增 ${d.rowsAdded} 行`);
-        if (d.rowsRemoved) notes.push(`删除 ${d.rowsRemoved} 行`);
-        if (d.colsChanged) notes.push(`⚠️ 列数 ${d.oCols}→${d.nCols}：应用时整表重建，表格样式会重置`);
-        if (!notes.length) notes.push('内容与当前表格一致（无变化）');
+        if (d.changed.length) notes.push(tr`改动 ${d.changed.length} 个单元格`);
+        if (d.rowsAdded) notes.push(tr`新增 ${d.rowsAdded} 行`);
+        if (d.rowsRemoved) notes.push(tr`删除 ${d.rowsRemoved} 行`);
+        if (d.colsChanged) notes.push(tr`⚠️ 列数 ${d.oCols}→${d.nCols}：应用时整表重建，表格样式会重置`);
+        if (!notes.length) notes.push(tr('内容与当前表格一致（无变化）'));
       } else {
-        notes.push(`将把该段文字替换为 ${d.nRows}×${d.nCols} 的表格`);
+        notes.push(tr`将把该段文字替换为 ${d.nRows}×${d.nCols} 的表格`);
       }
       const note = document.createElement('div');
       note.className = 'tbl-note';
       note.textContent = notes.join(' · ');
       diffView.appendChild(note);
     } else if (tk && tk.kind === 'table' && tableErr) {
-      diffView.innerHTML = `<span class="muted">⚠️ 这是表格目标，但回复没解析出 Markdown 表格（${escapeHtml(tableErr)}），无法应用。点 🔁 重试。</span>`;
+      diffView.innerHTML = tr`<span class="muted">⚠️ 这是表格目标，但回复没解析出 Markdown 表格（${escapeHtml(uiText(tableErr))}），无法应用。点 🔁 重试。</span>`;
     } else if (diff == null) {
-      diffView.innerHTML = '<i class="muted">（没有对应目标，只能看新文本）</i>';
+      diffView.innerHTML = tr('<i class="muted">（没有对应目标，只能看新文本）</i>');
     }
     card.querySelectorAll('.tab').forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -1156,16 +1159,16 @@
     let forceNext = false; // 二次点击确认覆盖（Word 的 WebView 会吞 window.confirm，不能用弹窗）
     const doApply = async () => {
       if (state.streaming || done) return done;
-      if (!tk) { statusEl.textContent = '⚠️ 没有对应目标，无法应用'; return false; }
-      if (tk.kind === 'table' && !tableVals) { statusEl.textContent = '⚠️ 未解析出表格，无法应用'; return false; }
+      if (!tk) { statusEl.textContent = tr('⚠️ 没有对应目标，无法应用'); return false; }
+      if (tk.kind === 'table' && !tableVals) { statusEl.textContent = tr('⚠️ 未解析出表格，无法应用'); return false; }
       applyBtn.disabled = true;
-      statusEl.textContent = '应用中…';
+      statusEl.textContent = tr('应用中…');
       const opts = tableVals ? { tableVals } : {};
       let r = await applyReplacement(tk.ccId, replacement, forceNext, opts);
       if (r.needConfirm) {
         forceNext = true;
         applyBtn.disabled = false;
-        statusEl.textContent = `⚠️ 目标${multi ? ' ' + tk.k + ' ' : ''}的内容在捕获后已变化（可能手动改过）。确认覆盖请再点一次「✅ 应用」`;
+        statusEl.textContent = tr`⚠️ 目标${multi ? ' ' + tk.k + ' ' : ''}的内容在捕获后已变化（可能手动改过）。确认覆盖请再点一次「✅ 应用」`;
         return false;
       }
       forceNext = false;
@@ -1173,16 +1176,16 @@
         done = true;
         state.targets = state.targets.filter((t) => t.ccId !== tk.ccId); // 应用成功 → 该目标自动移除
         renderTargetBar();
-        const fmt = r.table === 'cells' ? '（按单元格级更新，表格样式保留）'
-          : r.table === 'rebuild' ? '（列数有变，整表已重建；表格样式被重置，可用格式刷补）'
-          : r.table === 'insert' ? '（该段文字已替换为表格）'
-          : r.kept ? '，原格式已保留' : '（此段结构复杂，按纯文本写入，局部格式或需手补）';
+        const fmt = r.table === 'cells' ? tr('（按单元格级更新，表格样式保留）')
+          : r.table === 'rebuild' ? tr('（列数有变，整表已重建；表格样式被重置，可用格式刷补）')
+          : r.table === 'insert' ? tr('（该段文字已替换为表格）')
+          : r.kept ? tr('，原格式已保留') : tr('（此段结构复杂，按纯文本写入，局部格式或需手补）');
         statusEl.textContent = r.tracked
-          ? `✅ 已以修订写入${fmt}，该目标已自动移除。审阅→接受可定稿`
-          : `✅ 已应用${fmt}，该目标已自动移除。Cmd+Z 可撤销`;
+          ? tr`✅ 已以修订写入${fmt}，该目标已自动移除。审阅→接受可定稿`
+          : tr`✅ 已应用${fmt}，该目标已自动移除。Cmd+Z 可撤销`;
         return true;
       }
-      statusEl.textContent = '⚠️ ' + (r.error || '应用失败');
+      statusEl.textContent = '⚠️ ' + (r.error || tr('应用失败'));
       applyBtn.disabled = false;
       return false;
     };
@@ -1245,20 +1248,20 @@
     if (state.streaming || state.loadingFiles) return;
     const cfg = { ...state.cfg };
     const mode = cfg.mode;
-    if (!state.wordReady) { addNote('⚠️ Office 还没就绪，稍等或点 ⟳ 刷新面板'); return; }
+    if (!state.wordReady) { addNote(tr('⚠️ Office 还没就绪，稍等或点 ⟳ 刷新面板')); return; }
     if (mode === 'edit' && !state.targets.length) {
-      addNote('⚠️ 改写模式需要先有目标：在文档里选中一段正文，点 🎯（可多次添加多段）。<br>（只是想提问的话，切上面的「💬 问答」模式）');
+      addNote(tr('⚠️ 改写模式需要先有目标：在文档里选中一段正文，点 🎯（可多次添加多段）。<br>（只是想提问的话，切上面的「💬 问答」模式）'));
       return;
     }
 
-    if (state.serverOk === false) { addNote('本机服务尚未连接。请打开顶部的连接设置重新检测。'); return; }
+    if (state.serverOk === false) { addNote(tr('本机服务尚未连接。请打开顶部的连接设置重新检测。')); return; }
     setStreaming(true);
     state.stopRequested = false;
     const ac = new AbortController();
     state.aborter = ac;
     const myReq = ++reqCounter;
     state.curReq = myReq;
-    $('#request-status').textContent = '正在读取文档…';
+    $('#request-status').textContent = tr('正在读取文档…');
     try {
       // 组文档上下文；sentTargets 是本轮请求的目标快照（编号按文档顺序）
       let doc = { docTitle: docTitle() };
@@ -1267,7 +1270,7 @@
         const ctx = await getEditContext();
         if (state.curReq !== myReq || ac.signal.aborted) return;
         if (!ctx.ok) {
-          if (mode === 'edit') { addNote('⚠️ ' + escapeHtml(ctx.error || '拿不到上下文')); return; }
+          if (mode === 'edit') { addNote('⚠️ ' + escapeHtml(ctx.error || tr('拿不到上下文'))); return; }
         } else {
           // 目标被手动编辑过：以文档现状为准，校准基线
           const oldById = new Map(state.targets.map((t) => [t.ccId, t]));
@@ -1297,10 +1300,10 @@
       }
       if (!doc.fullText) {
         const w = await getWholeDoc();
-        if (!w.ok) { addNote('文档读取失败：' + escapeHtml(w.error || '请稍后重试')); return; }
+        if (!w.ok) { addNote(tr('文档读取失败：') + escapeHtml(w.error || tr('请稍后重试'))); return; }
         if (w.ok) Object.assign(doc, { fullText: w.fullText, truncated: w.truncated, docChars: w.docChars });
       }
-      if (mode === 'edit' && !sentTargets.length) { addNote('⚠️ 目标读取失败，请重试'); return; }
+      if (mode === 'edit' && !sentTargets.length) { addNote(tr('⚠️ 目标读取失败，请重试')); return; }
 
       if (state.curReq !== myReq || ac.signal.aborted) return;
       const sendBackend = cfg.backend;
@@ -1332,7 +1335,7 @@
       state.messages.push({ role: 'user', content: text });
 
       const aBubble = addMessageEl('assistant');
-      aBubble.innerHTML = '<span class="typing">思考中<span>.</span><span>.</span><span>.</span></span>';
+      aBubble.innerHTML = tr('<span class="typing">思考中<span>.</span><span>.</span><span>.</span></span>');
 
       let raw = '';
       let thinking = '';
@@ -1345,7 +1348,7 @@
       const requestedModel = via.model;
       delete observedModels[via.backend][requestedModel];
       renderModelDetail();
-      if (via.backend === 'codex' && via.model === '(default)') via.model = '本机默认模型';
+      if (via.backend === 'codex' && via.model === '(default)') via.model = tr('本机默认模型');
 
       const scheduleRender = (final) => {
         if (state.curReq !== myReq) return; // 这条请求已被强制停止作废，别再动界面
@@ -1357,11 +1360,11 @@
           const nearBottom = els.messages.scrollHeight - els.messages.scrollTop - els.messages.clientHeight < 90;
           let html = '';
           if (thinking.trim()) {
-            html += `<details class="think"><summary>💭 思考过程</summary><div>${escapeHtml(thinking)}</div></details>`;
+            html += tr`<details class="think"><summary>💭 思考过程</summary><div>${escapeHtml(thinking)}</div></details>`;
           }
           let show = raw;
           if ((raw.match(/```/g) || []).length % 2 === 1) show = raw + '\n```';
-          html += renderMarkdown(show) || '<span class="typing">思考中<span>.</span><span>.</span><span>.</span></span>';
+          html += renderMarkdown(show) || tr('<span class="typing">思考中<span>.</span><span>.</span><span>.</span></span>');
           aBubble.innerHTML = html;
           if (nearBottom) els.messages.scrollTop = els.messages.scrollHeight;
         });
@@ -1379,12 +1382,12 @@
         messages: state.messages.filter((m) => !m.failed).map((m) => ({ role: m.role, content: m.content })),
       };
       let sawDelta = false, sawDone = false, requestFailed = false;
-      let requestPhase = '正在连接模型';
+      let requestPhase = tr('正在连接模型');
 
       const handleEvt = (evt) => {
         if (state.curReq !== myReq || ac.signal.aborted) return;
         if (evt.type === 'done') { sawDone = true; if (evt.ok === false) requestFailed = true; }
-        else if (evt.type === 'status') requestPhase = evt.text || '正在生成';
+        else if (evt.type === 'status') requestPhase = uiText(evt.text) || tr('正在生成');
         else if (evt.type === 'delta') { sawDelta = true; raw += evt.text; scheduleRender(); }
         else if (evt.type === 'thinking') { thinking += evt.text; scheduleRender(); }
         else if (evt.type === 'model') {
@@ -1396,8 +1399,8 @@
         }
         else if (evt.type === 'meta') { via.resumed = !!evt.resume; }
         else if (evt.type === 'cli_session') { if (evt.backend) state.cliSession[evt.backend] = evt.id || null; }
-        else if (evt.type === 'note') { via.resumed = false; if (evt.text) addNote(escapeHtml(evt.text)); }
-        else if (evt.type === 'error') { requestFailed = true; raw += (raw ? '\n\n' : '') + `⚠️ **出错了**：\n\n${evt.error}${evt.hint ? '\n\n' + evt.hint : ''}`; scheduleRender(); }
+        else if (evt.type === 'note') { via.resumed = false; if (evt.text) addNote(escapeHtml(uiText(evt.text))); }
+        else if (evt.type === 'error') { requestFailed = true; raw += (raw ? '\n\n' : '') + tr`⚠️ **出错了**：\n\n${uiText(evt.error)}${evt.hint ? '\n\n' + uiText(evt.hint) : ''}`; scheduleRender(); }
       };
 
       // —— 硬化过的流式请求 ——
@@ -1410,12 +1413,12 @@
       // 长时间没输出时显示已等待秒数，免得"思考中…"看起来像卡死
       const ticker = setInterval(() => {
         if (state.curReq !== myReq || !state.streaming) return;
-        $('#request-status').textContent = `${raw ? '正在生成' : requestPhase} · ${Math.round((Date.now() - startedAt) / 1000)}s`;
+        $('#request-status').textContent = `${raw ? tr('正在生成') : requestPhase} · ${Math.round((Date.now() - startedAt) / 1000)}s`;
         if (raw || thinking.trim()) return;
         const s = Math.round((Date.now() - startedAt) / 1000);
         if (s >= 5) {
-          aBubble.innerHTML = '<span class="typing">思考中<span>.</span><span>.</span><span>.</span></span>' +
-            ` <span style="color:#9aa0b4;font-size:11px">${s}s${s >= 30 ? ' · effort 高时要几分钟，可点 ⏹ 停止' : ''}</span>`;
+          aBubble.innerHTML = tr('<span class="typing">思考中<span>.</span><span>.</span><span>.</span></span>') +
+            ` <span style="color:#9aa0b4;font-size:11px">${s}s${s >= 30 ? tr(' · effort 高时要几分钟，可点 ⏹ 停止') : ''}</span>`;
         }
       }, 1000);
 
@@ -1432,7 +1435,7 @@
         ]);
         clearTimeout(connectTimer);
         if (ac.signal.aborted || state.curReq !== myReq) { resp.body?.cancel().catch(() => {}); return; }
-        if (!resp.ok) { let err; try { err = await resp.json(); } catch {} throw new Error(err?.error || `服务返回 HTTP ${resp.status}`); }
+        if (!resp.ok) { let err; try { err = await resp.json(); } catch {} throw new Error(uiText(err?.error) || tr`服务返回 HTTP ${resp.status}`); }
         if (resp.body && resp.body.getReader) {
           const reader = resp.body.getReader();
           state.reader = reader;
@@ -1468,7 +1471,7 @@
             if (line.trim()) { try { handleEvt(JSON.parse(line)); } catch {} }
           }
         }
-        if (!sawDone && !state.stopRequested) throw new Error('连接在完成前中断，请重试。');
+        if (!sawDone && !state.stopRequested) throw new Error(tr('连接在完成前中断，请重试。'));
       } catch (e) {
         requestFailed = true;
         ac.abort();
@@ -1476,21 +1479,21 @@
         if (state.reader) { try { state.reader.cancel().catch(() => {}); } catch {} } // 别让死连接继续占着
         const msg = String((e && e.message) || e);
         if (e && e.name === 'AbortError') {
-          raw += raw ? '\n\n_（已停止）_' : '_（已停止）_';
+          raw += raw ? tr('\n\n_（已停止）_') : tr('_（已停止）_');
         } else if (msg === '__CONNECT__') {
           try { ac.abort(); } catch {}
           raw += (raw ? '\n\n' : '') +
-            '⚠️ **连不上本机服务**（20 秒无响应）。终端里重启服务后点 🔁 重试：\n\n`npm run update`';
+            tr('⚠️ **连不上本机服务**（20 秒无响应）。终端里重启服务后点 🔁 重试：\n\n`npm run update`');
           ping();
         } else if (msg === '__STALL__') {
           raw += (raw ? '\n\n' : '') +
-            '⚠️ **连接停滞**（45 秒没收到任何数据，已主动断开）。点 🔁 重试；反复出现就重启服务：\n\n`npm run update`';
+            tr('⚠️ **连接停滞**（45 秒没收到任何数据，已主动断开）。点 🔁 重试；反复出现就重启服务：\n\n`npm run update`');
           ping();
         } else {
           const hint = /load failed|network/i.test(msg)
-            ? '（连接中途断了。点 🔁 重试；持续出现就重启服务，可在连接设置查看日志路径）'
+            ? tr('（连接中途断了。点 🔁 重试；持续出现就重启服务，可在连接设置查看日志路径）')
             : '';
-          raw += (raw ? '\n\n' : '') + `⚠️ **请求失败**：${msg}${hint}`;
+          raw += (raw ? '\n\n' : '') + tr`⚠️ **请求失败**：${msg}${hint}`;
           ping();
         }
         scheduleRender(true);
@@ -1498,8 +1501,8 @@
       if (state.curReq !== myReq) return;
       state.reader = null;
       // 走 reader.cancel() 停下来的（循环正常结束，不抛 AbortError）也要标注"已停止"
-      if (state.stopRequested && !/（已停止）/.test(raw)) {
-        raw += raw ? '\n\n_（已停止）_' : '_（已停止）_';
+      if (state.stopRequested && !raw.includes(tr('_（已停止）_'))) {
+        raw += raw ? tr('\n\n_（已停止）_') : tr('_（已停止）_');
         scheduleRender(true);
       }
       // 已被强制停止作废的请求：到此为止，界面早已复位，别再写任何东西
@@ -1510,7 +1513,7 @@
       if (!successful) { state.cliSession[sendBackend] = null; state.sentAtts[sendBackend] = []; }
 
       // 收尾渲染
-      state.messages.push({ role: 'assistant', content: raw || '（无输出）', via: { ...via }, failed: !successful });
+      state.messages.push({ role: 'assistant', content: raw || tr('（无输出）'), via: { ...via }, failed: !successful });
       state.cliContext[sendBackend] = successful ? { key: sentContextKey, turns: state.messages.length } : null;
       // 本轮成功且 CLI 会话在册 → 当前所有附件都已进入该会话的记忆，下轮不必重发
       if (successful && state.cliSession[sendBackend]) {
@@ -1520,12 +1523,12 @@
       renderTargetBar(); // 刷新 ♻️ 缓存标识
       if (!state.longNoteShown && state.messages.length >= LONG_SESSION_MSGS) {
         state.longNoteShown = true;
-        setTimeout(() => addNote('💡 这个会话有点长了。建议点右上角 <b>🆕</b> 开新会话：旧会话自动归档到 🕘，并<b>重新读取全文上下文</b>，回复会更快更准。'), 400);
+        setTimeout(() => addNote(tr('💡 这个会话有点长了。建议点右上角 <b>🆕</b> 开新会话：旧会话自动归档到 🕘，并<b>重新读取全文上下文</b>，回复会更快更准。')), 400);
       }
       const reps = mode === 'edit' && successful ? parseReplacements(raw, sentTargets.length) : null;
       let html = '';
       if (thinking.trim()) {
-        html += `<details class="think"><summary>💭 思考过程</summary><div>${escapeHtml(thinking)}</div></details>`;
+        html += tr`<details class="think"><summary>💭 思考过程</summary><div>${escapeHtml(thinking)}</div></details>`;
       }
       if (reps && reps.length) {
         const note = stripFences(raw, reps);
@@ -1541,7 +1544,7 @@
           const missing = sentTargets.filter((t) => !reps.some((r) => r.k === t.k)).map((t) => t.k);
           const d = document.createElement('div');
           d.className = 'warnbox';
-          d.textContent = `模型未输出目标 ${missing.join('、')} 的替换（视为无需改动）。`;
+          d.textContent = tr`模型未输出目标 ${missing.join('、')} 的替换（视为无需改动）。`;
           aBubble.appendChild(d);
         }
         if (applyFns.length > 1) {
@@ -1549,12 +1552,12 @@
           bar.className = 'applyall';
           const btn = document.createElement('button');
           btn.className = 'btn btn-primary';
-          btn.textContent = `✅ 应用全部（${applyFns.length} 处）`;
+          btn.textContent = tr`✅ 应用全部（${applyFns.length} 处）`;
           btn.addEventListener('click', async () => {
             btn.disabled = true;
             let okCount = 0;
             for (const fn of applyFns) { if (await fn()) okCount++; }
-            btn.textContent = `✅ 全部应用完成（成功 ${okCount}/${applyFns.length}）`;
+            btn.textContent = tr`✅ 全部应用完成（成功 ${okCount}/${applyFns.length}）`;
           });
           bar.appendChild(btn);
           aBubble.appendChild(bar);
@@ -1563,18 +1566,18 @@
         foot.innerHTML = footHtml(via);
         if (foot.firstChild) aBubble.appendChild(foot.firstChild);
       } else {
-        html += renderMarkdown(raw) || '<i class="muted">（无输出）</i>';
+        html += renderMarkdown(raw) || tr('<i class="muted">（无输出）</i>');
         if (!successful) {
-          html += '<div class="warnbox">本轮未完成，已保留输出供查看。请重试后再应用改写。</div>';
+          html += tr('<div class="warnbox">本轮未完成，已保留输出供查看。请重试后再应用改写。</div>');
         } else if (mode === 'edit' && raw.trim()) {
-          html += `<div class="warnbox">未能把回复解析成替换文本${sentTargets.length > 1 ? '（多目标需要每段带【目标k】标签的 \`\`\`text 围栏）' : '（需要 \`\`\`text 围栏）'}，无法一键应用。可以「🔁 重试」或换个说法。</div>`;
+          html += tr`<div class="warnbox">未能把回复解析成替换文本${sentTargets.length > 1 ? tr('（多目标需要每段带【目标k】标签的 \`\`\`text 围栏）') : tr('（需要 \`\`\`text 围栏）')}，无法一键应用。可以「🔁 重试」或换个说法。</div>`;
         }
         html += footHtml(via);
         aBubble.innerHTML = html;
         if (!successful || (mode === 'edit' && raw.trim())) {
           const retryBtn = document.createElement('button');
           retryBtn.className = 'btn';
-          retryBtn.textContent = '🔁 重试';
+          retryBtn.textContent = tr('🔁 重试');
           retryBtn.addEventListener('click', () => {
             if (state.streaming) return;
             const lastUser = [...state.messages].reverse().find((m) => m.role === 'user');
@@ -1585,7 +1588,7 @@
       }
       els.messages.scrollTop = els.messages.scrollHeight;
     } catch (e) {
-      if (state.curReq === myReq) addNote('读取或发送失败：' + escapeHtml(e?.message || e));
+      if (state.curReq === myReq) addNote(tr('读取或发送失败：') + escapeHtml(e?.message || e));
     } finally {
       if (state.curReq === myReq) { state.aborter = null; setStreaming(false); }
     }
@@ -1595,7 +1598,7 @@
     state.stopRequested = true;
     state.cliSession[state.cfg.backend] = null;
     state.cliContext[state.cfg.backend] = null;
-    $('#request-status').textContent = '正在停止…';
+    $('#request-status').textContent = tr('正在停止…');
     // 顺序很重要：先 cancel 读取器（让挂着的 read() 立刻落地——Word 的 WebKit 里
     // 光 abort() 会让 read() 永远悬着，这就是以前"点⏹没反应"的原因），再 abort 请求。
     if (state.reader) { try { state.reader.cancel().catch(() => {}); } catch {} }
@@ -1608,7 +1611,7 @@
         state.aborter = null;
         state.reader = null;
         setStreaming(false);
-        addNote('⏹ 已强制停止');
+        addNote(tr('⏹ 已强制停止'));
       }
     }, 2000);
   }
@@ -1616,7 +1619,7 @@
     state.streaming = v;
     els.send.classList.toggle('hidden', v);
     els.stop.classList.toggle('hidden', !v);
-    for (const id of ['sel-backend', 'sel-model', 'sel-effort', 'btn-reload', 'mode-edit', 'mode-ask', 'btn-capture', 'btn-clear', 'btn-new', 'btn-hist', 'att-local', 'btn-models']) {
+    for (const id of ['sel-language', 'sel-backend', 'sel-model', 'sel-effort', 'btn-reload', 'mode-edit', 'mode-ask', 'btn-capture', 'btn-clear', 'btn-new', 'btn-hist', 'att-local', 'btn-models']) {
       const el = $('#' + id); if (el) el.disabled = v;
     }
     els.messages.setAttribute('aria-busy', String(v));
@@ -1642,12 +1645,12 @@
     if (state.targets.length) {
       await refreshTargets(true);
       if (state.targets.length) {
-        addNote(`🆕 新会话已开启（旧会话在 🕘 里）。已重新读取全文 ~${Math.max(1, Math.round(state.docChars / 1000))}k 字符，${state.targets.length} 段目标仍有效。`);
+        addNote(tr`🆕 新会话已开启（旧会话在 🕘 里）。已重新读取全文 ~${Math.max(1, Math.round(state.docChars / 1000))}k 字符，${state.targets.length} 段目标仍有效。`);
       } else {
-        addNote('🆕 新会话已开启（旧会话在 🕘 里）。原目标在文档里找不到了，请重新选中添加。');
+        addNote(tr('🆕 新会话已开启（旧会话在 🕘 里）。原目标在文档里找不到了，请重新选中添加。'));
       }
     } else {
-      addNote('🆕 新会话已开启（旧会话在 🕘 里）。');
+      addNote(tr('🆕 新会话已开启（旧会话在 🕘 里）。'));
     }
   }
 
@@ -1667,11 +1670,11 @@
     cur.className = 'hist-item hist-cur';
     const curMeta = document.createElement('div');
     curMeta.className = 'hist-meta';
-    curMeta.textContent = `当前会话 · ${state.messages.length} 条消息`;
+    curMeta.textContent = tr`当前会话 · ${state.messages.length} 条消息`;
     cur.appendChild(curMeta);
     const curBtns = document.createElement('div');
     curBtns.className = 'hist-btns';
-    const curCopy = mkBtn('📋 复制整段', () => copyText(sessionMarkdown(state.messages), curCopy));
+    const curCopy = mkBtn(tr('📋 复制整段'), () => copyText(sessionMarkdown(state.messages), curCopy));
     curBtns.appendChild(curCopy);
     cur.appendChild(curBtns);
     wrap.appendChild(cur);
@@ -1679,7 +1682,7 @@
     if (!list.length) {
       const empty = document.createElement('div');
       empty.className = 'hist-empty';
-      empty.textContent = '还没有归档的会话。点 🆕 开新会话时，旧会话会自动归档到这里（每个文档最多留 10 段）。';
+      empty.textContent = tr('还没有归档的会话。点 🆕 开新会话时，旧会话会自动归档到这里（每个文档最多留 10 段）。');
       wrap.appendChild(empty);
     }
 
@@ -1688,14 +1691,14 @@
       item.className = 'hist-item';
       const meta = document.createElement('div');
       meta.className = 'hist-meta';
-      meta.textContent = `${fmtTime(s.ts)} · ${s.messages.length} 条消息`;
+      meta.textContent = tr`${fmtTime(s.ts)} · ${s.messages.length} 条消息`;
       const prev = document.createElement('div');
       prev.className = 'hist-prev';
-      prev.textContent = s.preview || '（无预览）';
+      prev.textContent = s.preview || tr('（无预览）');
       const btns = document.createElement('div');
       btns.className = 'hist-btns';
-      const openB = mkBtn('打开', () => openSession(i));
-      const copyB = mkBtn('📋 复制整段', () => copyText(sessionMarkdown(s.messages), copyB));
+      const openB = mkBtn(tr('打开'), () => openSession(i));
+      const copyB = mkBtn(tr('📋 复制整段'), () => copyText(sessionMarkdown(s.messages), copyB));
       const delB = mkBtn('🗑', () => {
         const l = getArchive();
         l.splice(i, 1);
@@ -1728,7 +1731,7 @@
     renderTargetBar();
     saveHistory();
     els.histView.classList.add('hidden');
-    addNote('🕘 已切回历史会话（它的缓存会话一并恢复：能续写就续写，失效则自动重读全文）。改写前请确认目标条里的目标还是你想改的那几段。');
+    addNote(tr('🕘 已切回历史会话（它的缓存会话一并恢复：能续写就续写，失效则自动重读全文）。改写前请确认目标条里的目标还是你想改的那几段。'));
   }
   function renderHistoryMsgs() {
     for (const m of state.messages) {
@@ -1747,7 +1750,7 @@
         Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (res) => {
           if (res.status !== Office.AsyncResultStatus.Succeeded) { els.selHint.textContent = ''; return; }
           const n = normNL(res.value || '').length;
-          els.selHint.textContent = n > 1 ? `文档中已选中 ${n} 字符 → 点 🎯 添加为目标段` : '';
+          els.selHint.textContent = n > 1 ? tr`文档中已选中 ${n} 字符 → 点 🎯 添加为目标段` : '';
         });
       } catch { els.selHint.textContent = ''; }
     }, 350);
@@ -1788,18 +1791,18 @@
     const actual = observedModels[backend]?.[selected];
     const detail = modelDetails[backend]?.[selected];
     const el = $('#model-detail');
-    if (actual) el.textContent = `最近调用实际模型：${actual}`;
-    else if (detail?.resolvedModel) el.textContent = `CLI 当前解析：${detail.resolvedModel}（${selected} 自动版本）`;
-    else if (backend === 'claude' && ['sonnet', 'opus', 'haiku'].includes(selected)) el.textContent = `${selected} 自动版本 · 尚未取得具体版本，调用后显示实际模型`;
-    else el.textContent = selected === '(default)' ? '模型按本机 Codex 配置解析' : `请求模型：${selected}`;
+    if (actual) el.textContent = tr`最近调用实际模型：${actual}`;
+    else if (detail?.resolvedModel) el.textContent = tr`CLI 当前解析：${detail.resolvedModel}（${selected} 自动版本）`;
+    else if (backend === 'claude' && ['sonnet', 'opus', 'haiku'].includes(selected)) el.textContent = tr`${selected} 自动版本 · 尚未取得具体版本，调用后显示实际模型`;
+    else el.textContent = selected === '(default)' ? tr('模型按本机 Codex 配置解析') : tr`请求模型：${selected}`;
     el.title = detail?.description || el.textContent;
     els.model.title = el.textContent;
   }
   function fillModelOptions() {
     const list = [...(MODELS[state.cfg.backend] || MODELS.claude)];
     const saved = state.cfg.backend === 'codex' ? state.cfg.model_codex : state.cfg.model_claude;
-    if (typeof saved === 'string' && saved && !list.some(([v]) => v === saved)) list.push([saved, saved + ' · 已保存']);
-    els.model.innerHTML = list.map(([v, label]) => `<option value="${escapeHtml(v)}">${escapeHtml(label)}</option>`).join('');
+    if (typeof saved === 'string' && saved && !list.some(([v]) => v === saved)) list.push([saved, saved + tr(' · 已保存')]);
+    els.model.innerHTML = list.map(([v, label]) => `<option value="${escapeHtml(v)}">${escapeHtml(uiText(label))}</option>`).join('');
     const want = state.cfg.backend === 'codex' ? state.cfg.model_codex : state.cfg.model_claude;
     els.model.value = list.some(([v]) => v === want) ? want : list[0][0];
     // 列表刷新后原选择可能已不存在，把实际生效的值写回配置，防止发请求时用到失效模型名
@@ -1812,7 +1815,7 @@
     const key = 'effort_' + state.cfg.backend;
     const levels = state.cfg.backend === 'codex' ? (modelEfforts.codex?.[els.model.value] || ['low', 'medium', 'high', 'xhigh']) : EFFORTS;
     const want = state.cfg[key] || state.cfg.effort;
-    els.effort.innerHTML = levels.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(EFFORT_LABELS[e] || e)} · ${escapeHtml(e)}</option>`).join('');
+    els.effort.innerHTML = levels.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(tr(EFFORT_LABELS[e] || e))} · ${escapeHtml(e)}</option>`).join('');
     els.effort.value = levels.includes(want) ? want : levels.includes('medium') ? 'medium' : levels[0];
     state.cfg.effort = els.effort.value;
   }
@@ -1828,18 +1831,18 @@
       if (r.efforts) modelEfforts = r.efforts;
       if (r.details) modelDetails = r.details;
       const got = [];
-      if (Array.isArray(r.claude) && r.claude.length) { MODELS.claude = r.claude; got.push('claude ' + r.claude.length + ' 个'); }
-      if (Array.isArray(r.codex) && r.codex.length) { MODELS.codex = r.codex; got.push('codex ' + r.codex.length + ' 个'); }
-      if (!got.length) throw new Error('两个后端都没探测到模型（CLI 没装好或网络不通？）');
+      if (Array.isArray(r.claude) && r.claude.length) { MODELS.claude = r.claude; got.push('claude ' + r.claude.length + tr(' 个')); }
+      if (Array.isArray(r.codex) && r.codex.length) { MODELS.codex = r.codex; got.push('codex ' + r.codex.length + tr(' 个')); }
+      if (!got.length) throw new Error(tr('两个后端都没探测到模型（CLI 没装好或网络不通？）'));
       try { localStorage.setItem('we:models', JSON.stringify({ claude: MODELS.claude, codex: MODELS.codex, fetchedAt: r.fetchedAt, efforts: modelEfforts, details: modelDetails })); } catch {}
       if (!state.streaming) { fillModelOptions(); saveCfg(); }
       if (!quiet) {
         const cur = MODELS[state.cfg.backend].find(([v]) => v === els.model.value);
-        addNote(`🔄 模型列表已更新（${got.join('、')}）。当前选用：${escapeHtml(cur ? cur[1] : els.model.value)}`);
+        addNote(tr`🔄 模型列表已更新（${got.join('、')}）。当前选用：${escapeHtml(uiText(cur ? cur[1] : els.model.value))}`);
       }
-      if (!quiet && r.warnings?.length) addNote(escapeHtml(r.warnings.join(' ')));
+      if (!quiet && r.warnings?.length) addNote(escapeHtml(r.warnings.map((value) => uiText(value)).join(' ')));
     } catch (e) {
-      if (!quiet) addNote('⚠️ 获取模型列表失败：' + escapeHtml(String(e?.message || e)));
+      if (!quiet) addNote(tr('⚠️ 获取模型列表失败：') + escapeHtml(String(e?.message || e)));
     }
     btn.disabled = state.streaming;
     btn.textContent = '⟳';
@@ -1857,12 +1860,12 @@
     els.modeEdit.setAttribute('aria-pressed', String(mode === 'edit'));
     els.modeAsk.setAttribute('aria-pressed', String(mode === 'ask'));
     els.trackWrap.classList.toggle('hidden', mode === 'ask');
-    els.send.innerHTML = mode === 'edit' ? '生成改写 <span aria-hidden="true">↑</span>' : '发送提问 <span aria-hidden="true">↑</span>';
-    $('#instruction-label').textContent = mode === 'edit' ? '告诉我怎么改' : '想了解文档的什么';
+    els.send.innerHTML = mode === 'edit' ? tr('生成改写 <span aria-hidden="true">↑</span>') : tr('发送提问 <span aria-hidden="true">↑</span>');
+    $('#instruction-label').textContent = mode === 'edit' ? tr('告诉我怎么改') : tr('想了解文档的什么');
     els.presets.classList.toggle('hidden', mode !== 'edit');
     els.input.placeholder = mode === 'edit'
-      ? '比如：更简洁一些，保留关键数据…'
-      : '比如：总结这份文档的核心观点…';
+      ? tr('比如：更简洁一些，保留关键数据…')
+      : tr('比如：总结这份文档的核心观点…');
     saveCfg();
   }
   function autoGrow() {
@@ -1870,10 +1873,30 @@
     els.input.style.height = Math.min(140, els.input.scrollHeight) + 'px';
   }
   function bindEvents() {
+    $('#sel-language').value = window.WordI18n.language;
+    $('#sel-language').addEventListener('change', () => {
+      if (state.streaming) { $('#sel-language').value = window.WordI18n.language; return; }
+      window.WordI18n.setLanguage($('#sel-language').value);
+      window.WordI18n.applyStatic(document);
+      fillModelOptions(); setMode(state.cfg.mode); refreshStatusUI(); renderTargetBar();
+      if (!state.messages.length) { $('.welcome')?.remove(); renderWelcome(); }
+      $('#presets').querySelectorAll('.chip').forEach((chip) => { chip.textContent = tr(PRESETS[Number(chip.dataset.i)][0]); });
+      // Existing conversation content stays in its original language. Only translate owned controls.
+      document.querySelectorAll('#messages .btn, .card .tab, .card-title, .card-status, .warnbox, .think summary').forEach((el) => {
+        if (el.children.length === 0) el.textContent = uiText(el.textContent);
+        if (el.title) el.title = uiText(el.title);
+      });
+      document.querySelectorAll('.tbl-note').forEach((el) => { el.textContent = el.textContent.split(' · ').map((value) => uiText(value)).join(' · '); });
+      if (!$('#hist-view').classList.contains('hidden')) openHistView();
+      if (!$('#connection-view').classList.contains('hidden')) diagnose();
+      renderAttachChips();
+      if (!state.has14 && els.trackChk.disabled) els.trackWrap.title = tr('当前 Word 版本不支持修订 API，将直接替换（Cmd+Z 可撤销）');
+      onDocSelectionChanged();
+    });
     $('#btn-connection').addEventListener('click', () => { $('#connection-view').classList.remove('hidden'); $('#connection-close').focus(); diagnose(); });
     $('#connection-close').addEventListener('click', () => { $('#connection-view').classList.add('hidden'); $('#btn-connection').focus(); });
     $('#btn-diagnose').addEventListener('click', () => diagnose());
-    $('#btn-capture').addEventListener('click', () => { if (state.wordReady && !state.streaming) addTarget(); else if (!state.wordReady) addNote('请在 Word 加载项中选中文字，再添加目标。'); });
+    $('#btn-capture').addEventListener('click', () => { if (state.wordReady && !state.streaming) addTarget(); else if (!state.wordReady) addNote(tr('请在 Word 加载项中选中文字，再添加目标。')); });
     $('#btn-clear').addEventListener('click', clearTargets);
     $('#btn-new').addEventListener('click', newSession);
     $('#btn-hist').addEventListener('click', openHistView);
@@ -1911,10 +1934,10 @@
     els.trackChk.checked = !!state.cfg.tracked;
     els.trackChk.addEventListener('change', () => { state.cfg.tracked = els.trackChk.checked; saveCfg(); });
 
-    els.presets.innerHTML = PRESETS.map(([label], i) => `<button class="chip" data-i="${i}">${label}</button>`).join('');
+    els.presets.innerHTML = PRESETS.map(([label], i) => `<button class="chip" data-i="${i}">${escapeHtml(tr(label))}</button>`).join('');
     els.presets.querySelectorAll('.chip').forEach((chip) => {
       chip.addEventListener('click', () => {
-        els.input.value = PRESETS[Number(chip.dataset.i)][1];
+        els.input.value = tr(PRESETS[Number(chip.dataset.i)][1]);
         autoGrow(); saveDraft();
         els.input.focus();
       });
@@ -1947,6 +1970,7 @@
 
   // ---------- 启动 ----------
   function init() {
+    window.WordI18n.applyStatic(document);
     grabEls();
     loadCfg();
     bindEvents();
@@ -1957,7 +1981,7 @@
     if (typeof fetch === 'function') setInterval(ping, 30000);
 
     if (typeof Office === 'undefined') {
-      els.banner.innerHTML = '⚠️ office.js 加载失败（微软 CDN 不可达？）。检查网络后点 ⟳ 刷新。';
+      els.banner.innerHTML = tr('⚠️ office.js 加载失败（微软 CDN 不可达？）。检查网络后点 ⟳ 刷新。');
       els.banner.classList.remove('hidden');
       refreshStatusUI();
       return;
@@ -1966,7 +1990,7 @@
     Office.onReady((info) => {
       state.wordReady = info.host === Office.HostType.Word;
       if (!state.wordReady) {
-        els.banner.textContent = '⚠️ 本加载项只支持 Word。';
+        els.banner.textContent = tr('⚠️ 本加载项只支持 Word。');
         els.banner.classList.remove('hidden');
         refreshStatusUI();
         return;
@@ -1975,7 +1999,7 @@
         state.has14 = Office.context.requirements.isSetSupported('WordApi', '1.4');
       } catch { state.has14 = false; }
       if (!state.has14) {
-        els.trackWrap.title = '当前 Word 版本不支持修订 API，将直接替换（Cmd+Z 可撤销）';
+        els.trackWrap.title = tr('当前 Word 版本不支持修订 API，将直接替换（Cmd+Z 可撤销）');
         els.trackChk.checked = false;
         els.trackChk.disabled = true;
       }

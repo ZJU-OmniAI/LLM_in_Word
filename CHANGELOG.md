@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.7.0 — 2026-09-13
+
+- Add English and Simplified Chinese interfaces with a persistent header language selector and automatic initial locale selection.
+- Localize controls, presets, model details, diagnostics, previews, history actions, and application errors while preserving document/model content and editing state.
+- Show Claude versions from the local CLI capability catalog and record actual response model IDs.
+- Update both READMEs for the public repository and the English interface; add locale and state-preservation regressions.
+
 ## 0.6.0 — 2026-09-13
 
 - Rename the project and private GitHub repository to **LLM_in_Word**; preserve legacy data, document anchors and environment-variable aliases.
