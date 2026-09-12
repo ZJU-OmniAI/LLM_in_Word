@@ -75,6 +75,8 @@ codex login
 
 **不需要两个后端都安装。** Windows 请安装原生 Windows CLI，仅安装在 WSL 内的 CLI 不能直接供本安装器使用。支持原生 `.exe` 和官方 npm 安装产生的 `.cmd` 入口。安装器不会替你安装或登录模型 CLI。
 
+模型下拉框会显示本机 Claude Code CLI 解析的版本（例如 **Opus 5**），下方同时显示完整模型 ID。Sonnet、Opus、Haiku 仍是自动别名，版本会随 CLI 或账号配置变化。刷新列表只读取 CLI 能力目录，不发送生成请求或文档内容。每次 Claude 回复还会记录该次调用实际报告的模型；旧版 CLI 无法提供版本时，会明确显示「自动版本」。
+
 ## Windows 安装
 
 目标环境：Windows 11、较新的 Microsoft 365 桌面版 Word、Windows PowerShell 5.1 或以上。使用平时运行 Word 的普通用户执行；安装器不要求管理员权限。单位管理的电脑请遵守单位的加载项策略。

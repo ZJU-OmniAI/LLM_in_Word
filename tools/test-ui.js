@@ -21,14 +21,14 @@ function setup(responseEvents, { trailingNewline = true, hold = false } = {}) {
       return new Response(text, { status: 200 });
     }
     if (url.startsWith('/api/health')) return { ok: true, json: async () => ({ backends: { claude: { label: '已登录', status: 'ready', path: '/mock', hint: 'ok' }, codex: { label: '已登录', status: 'ready', path: '/mock', hint: 'ok' } }, version: 'test', logPath: '/tmp/log' }) };
-    if (url.startsWith('/api/models')) return { ok: true, json: async () => ({ claude: [['sonnet', 'Sonnet']], codex: [['(default)', '默认']], fetchedAt: new Date().toISOString() }) };
+    if (url.startsWith('/api/models')) return { ok: true, json: async () => ({ claude: [['sonnet', 'Sonnet 5'], ['opus', 'Opus 4.8']], details: { claude: { sonnet: { resolvedModel: 'claude-sonnet-5' }, opus: { resolvedModel: 'claude-opus-4-8' } } }, codex: [['(default)', '默认']], fetchedAt: new Date().toISOString() }) };
     return { ok: true, json: async () => ({ ok: true }) };
   };
   w.eval(table);
   w.eval(js.replace('  init();', `  init();
     getEditContext = () => window.__context;
     getWholeDoc = () => window.__context;
-    window.ui = { state, sendInstruction, renderTargetBar, fillModelOptions, stopStream, contextKey };
+    window.ui = { state, sendInstruction, renderTargetBar, fillModelOptions, stopStream, contextKey, refreshModelList };
   `));
   w.ui.state.wordReady = true; w.ui.state.serverOk = true;
   w.ui.state.targets = [{ ccId: 1, text: '原文', kind: 'text' }];
@@ -79,4 +79,21 @@ test('Codex effort options omit unsupported max and settings preserve saved mode
 test('new draft persists while request is generating', async () => {
   const t = setup(good, { hold: true });
   try { t.input.value = '发送的内容'; const req = t.w.ui.sendInstruction('发送的内容'); t.input.value = '下一轮草稿'; t.input.dispatchEvent(new t.w.Event('input')); t.releaseContext({ ...context }); await req; assert.equal(t.input.value, '下一轮草稿'); assert.equal(t.w.localStorage.getItem('we:draft:untitled'), '下一轮草稿'); } finally { await t.close(); }
+});
+
+test('catalog versions keep aliases in requests; actual response model is shown separately', async () => {
+  const t = setup([{ type: 'model', model: 'claude-sonnet-5-1' }, ...good]);
+  try {
+    await t.w.ui.refreshModelList(true);
+    assert.equal(t.w.document.querySelector('#sel-model option[value="opus"]').textContent, 'Opus 4.8');
+    assert.match(t.w.document.querySelector('#model-detail').textContent, /CLI 当前解析：claude-sonnet-5/);
+    await t.w.ui.sendInstruction('润色');
+    assert.equal(t.calls[0].model, 'sonnet');
+    assert.match(t.w.document.querySelector('#model-detail').textContent, /最近调用实际模型：claude-sonnet-5-1/);
+    assert.match(t.w.document.querySelector('.foot').textContent, /claude-sonnet-5-1/);
+    t.w.ui.state.cfg.model_claude = 'opus'; t.w.ui.fillModelOptions();
+    assert.match(t.w.document.querySelector('#model-detail').textContent, /CLI 当前解析：claude-opus-4-8/);
+    t.w.ui.state.cfg.backend = 'codex'; t.w.ui.fillModelOptions();
+    assert.doesNotMatch(t.w.document.querySelector('#model-detail').textContent, /claude-/);
+  } finally { await t.close(); }
 });

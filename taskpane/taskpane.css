@@ -337,3 +337,5 @@ button:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:fo
 }
 @media(max-width:340px) { .backend-field { flex-basis:110px; } }
 @media(max-height:690px) { .welcome { display:none; } }
+
+.model-detail { margin-top:7px; color:#64725e; font-size:10px; line-height:1.5; overflow-wrap:anywhere; }

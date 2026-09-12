@@ -11,12 +11,14 @@
 
   // 模型列表：[候选值, 显示名]。别名由 CLI 解析成当下最新版本。
   const MODELS = {
-    claude: [['sonnet', 'Sonnet · 均衡'], ['opus', 'Opus · 深度'], ['haiku', 'Haiku · 快速']],
+    claude: [['sonnet', 'Sonnet · 自动版本'], ['opus', 'Opus · 自动版本'], ['haiku', 'Haiku · 自动版本']],
     codex: [['(default)', '默认 · 跟随本机配置']],
   };
   const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
   const EFFORT_LABELS = { none: '不额外思考', ultra: '最深入', minimal: '最少', low: '轻快', medium: '均衡', high: '深入', xhigh: '更深入', max: '最高' };
   let modelEfforts = { codex: {} };
+  let modelDetails = {};
+  const observedModels = { claude: {}, codex: {} };
 
   // 快捷指令（点一下填进输入框，可再编辑）
   const PRESETS = [
@@ -399,6 +401,7 @@
       if (m && Array.isArray(m.claude) && m.claude.length) MODELS.claude = m.claude;
       if (m && Array.isArray(m.codex) && m.codex.length) MODELS.codex = m.codex;
       if (m?.efforts) modelEfforts = m.efforts;
+      if (m?.details) modelDetails = m.details;
     } catch {}
     if (!['claude', 'codex'].includes(state.cfg.backend)) state.cfg.backend = 'claude';
   }
@@ -1339,6 +1342,9 @@
         model: cfg.backend === 'codex' ? cfg.model_codex : cfg.model_claude,
         effort: cfg.effort,
       };
+      const requestedModel = via.model;
+      delete observedModels[via.backend][requestedModel];
+      renderModelDetail();
       if (via.backend === 'codex' && via.model === '(default)') via.model = '本机默认模型';
 
       const scheduleRender = (final) => {
@@ -1381,7 +1387,13 @@
         else if (evt.type === 'status') requestPhase = evt.text || '正在生成';
         else if (evt.type === 'delta') { sawDelta = true; raw += evt.text; scheduleRender(); }
         else if (evt.type === 'thinking') { thinking += evt.text; scheduleRender(); }
-        else if (evt.type === 'model') { if (evt.model) via.model = evt.model; }
+        else if (evt.type === 'model') {
+          if (evt.model) {
+            via.model = evt.model;
+            observedModels[via.backend][requestedModel] = evt.model;
+            renderModelDetail();
+          }
+        }
         else if (evt.type === 'meta') { via.resumed = !!evt.resume; }
         else if (evt.type === 'cli_session') { if (evt.backend) state.cliSession[evt.backend] = evt.id || null; }
         else if (evt.type === 'note') { via.resumed = false; if (evt.text) addNote(escapeHtml(evt.text)); }
@@ -1770,6 +1782,19 @@
       histList: $('#hist-list'),
     });
   }
+  function renderModelDetail() {
+    const backend = state.cfg.backend;
+    const selected = backend === 'codex' ? state.cfg.model_codex : state.cfg.model_claude;
+    const actual = observedModels[backend]?.[selected];
+    const detail = modelDetails[backend]?.[selected];
+    const el = $('#model-detail');
+    if (actual) el.textContent = `最近调用实际模型：${actual}`;
+    else if (detail?.resolvedModel) el.textContent = `CLI 当前解析：${detail.resolvedModel}（${selected} 自动版本）`;
+    else if (backend === 'claude' && ['sonnet', 'opus', 'haiku'].includes(selected)) el.textContent = `${selected} 自动版本 · 尚未取得具体版本，调用后显示实际模型`;
+    else el.textContent = selected === '(default)' ? '模型按本机 Codex 配置解析' : `请求模型：${selected}`;
+    el.title = detail?.description || el.textContent;
+    els.model.title = el.textContent;
+  }
   function fillModelOptions() {
     const list = [...(MODELS[state.cfg.backend] || MODELS.claude)];
     const saved = state.cfg.backend === 'codex' ? state.cfg.model_codex : state.cfg.model_claude;
@@ -1781,6 +1806,7 @@
     if (state.cfg.backend === 'codex') state.cfg.model_codex = els.model.value;
     else state.cfg.model_claude = els.model.value;
     fillEffortOptions();
+    renderModelDetail();
   }
   function fillEffortOptions() {
     const key = 'effort_' + state.cfg.backend;
@@ -1790,7 +1816,7 @@
     els.effort.value = levels.includes(want) ? want : levels.includes('medium') ? 'medium' : levels[0];
     state.cfg.effort = els.effort.value;
   }
-  // 更新模型列表；Claude 使用别名，Codex 查询 CLI，见 server/models.js。
+  // 更新本机 CLI 模型目录及别名解析，见 server/models.js。
   // quiet=true 是面板启动时的自动刷新：失败不打扰，列表真变了才提示一句。
   async function refreshModelList(quiet) {
     const btn = $('#btn-models');
@@ -1800,11 +1826,12 @@
     try {
       const r = await fetchJson('/api/models' + (quiet ? '' : '?refresh=1'), 18000);
       if (r.efforts) modelEfforts = r.efforts;
-        const got = [];
+      if (r.details) modelDetails = r.details;
+      const got = [];
       if (Array.isArray(r.claude) && r.claude.length) { MODELS.claude = r.claude; got.push('claude ' + r.claude.length + ' 个'); }
       if (Array.isArray(r.codex) && r.codex.length) { MODELS.codex = r.codex; got.push('codex ' + r.codex.length + ' 个'); }
       if (!got.length) throw new Error('两个后端都没探测到模型（CLI 没装好或网络不通？）');
-      try { localStorage.setItem('we:models', JSON.stringify({ claude: MODELS.claude, codex: MODELS.codex, fetchedAt: r.fetchedAt, efforts: modelEfforts })); } catch {}
+      try { localStorage.setItem('we:models', JSON.stringify({ claude: MODELS.claude, codex: MODELS.codex, fetchedAt: r.fetchedAt, efforts: modelEfforts, details: modelDetails })); } catch {}
       if (!state.streaming) { fillModelOptions(); saveCfg(); }
       if (!quiet) {
         const cur = MODELS[state.cfg.backend].find(([v]) => v === els.model.value);
@@ -1817,13 +1844,11 @@
     btn.disabled = state.streaming;
     btn.textContent = '⟳';
   }
-  // 面板启动后：上次探测超过 24 小时（或从没探测过）就自动在后台刷新一次
+  // 面板启动后自动刷新一次；后端合并请求并缓存 5 分钟。
   function maybeAutoRefreshModels() {
     if (state.modelsAutoChecked || !state.serverOk) return;
     state.modelsAutoChecked = true;
-    let last = 0;
-    try { last = Date.parse(JSON.parse(localStorage.getItem('we:models') || '{}').fetchedAt) || 0; } catch {}
-    if (Date.now() - last > 24 * 3600 * 1000) refreshModelList(true);
+    refreshModelList(true);
   }
   function setMode(mode) {
     state.cfg.mode = mode;
@@ -1878,6 +1903,7 @@
       if (state.cfg.backend === 'codex') state.cfg.model_codex = els.model.value;
       else state.cfg.model_claude = els.model.value;
       fillEffortOptions();
+      renderModelDetail();
       saveCfg();
     });
     els.modeEdit.addEventListener('click', () => setMode('edit'));

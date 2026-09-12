@@ -77,6 +77,8 @@ codex login
 
 You only need one backend. On Windows use a **native Windows CLI**, not a CLI installed only inside WSL. Native `.exe` installations and official npm `.cmd` shims are supported. The installer does not install or log into model CLIs for you.
 
+Model selectors show the version resolved by your local Claude Code CLI (for example, **Opus 5**) and the full model ID below the selector. Sonnet, Opus and Haiku remain automatic aliases: their versions can change with your CLI/account configuration. Refreshing the list reads the CLI capability catalog without sending a generation request or document content. Each Claude reply records the actual model reported during that call; older CLIs that cannot provide version information are explicitly labeled **automatic version**.
+
 ## Windows installation
 
 Target: Windows 11 with current desktop Microsoft 365 Word and Windows PowerShell 5.1 or later. Use PowerShell under your normal Word user account; administrator privileges are not required by the installer. If using a managed work device, follow your organization's add-in policy.

@@ -18,6 +18,25 @@ if (args[0] === 'app-server') {
   });
   return;
 }
+if (args.includes('--input-format')) {
+  let buffer = '';
+  process.stdin.on('data', c => {
+    buffer += c;
+    let i;
+    while ((i = buffer.indexOf('\n')) >= 0) {
+      const m = JSON.parse(buffer.slice(0, i)); buffer = buffer.slice(i + 1);
+      if (m.type !== 'control_request' || m.request?.subtype !== 'initialize') process.exit(2);
+      const response = JSON.stringify({ type: 'control_response', response: { request_id: m.request_id, subtype: 'success', response: { models: [
+        { value: 'sonnet', displayName: 'Sonnet', resolvedModel: 'claude-sonnet-5' },
+        { value: 'opus', displayName: 'Opus', resolvedModel: 'claude-opus-4-8' },
+        { value: 'haiku', displayName: 'Haiku', resolvedModel: 'claude-haiku-4-5-20251001' },
+      ] } } });
+      process.stdout.write(response.slice(0, 25));
+      setTimeout(() => process.stdout.write(response.slice(25) + '\n'), 10);
+    }
+  });
+  return;
+}
 let prompt = '';
 process.stdin.on('data', (c) => { prompt += c; });
 process.stdin.on('end', () => {

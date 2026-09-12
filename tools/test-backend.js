@@ -14,7 +14,7 @@ process.env.WORD_EDIT_CODEX_BIN = fixture;
 process.env.WORD_EDIT_DATA_DIR = dir;
 const { runModel } = await import('../server/cli.js');
 const { runProcess, classifyError } = await import('../server/process.js');
-const { getModels } = await import('../server/models.js');
+const { getModels, claudeCatalog } = await import('../server/models.js');
 const { getHealth } = await import('../server/health.js');
 let server, base;
 test.before(async () => {
@@ -66,6 +66,9 @@ test('missing executable returns actionable failure', async () => {
 });
 test('model discovery handles pagination and supported efforts', async () => {
   const models = await getModels(true);
+  assert.deepEqual(models.claude, [['sonnet', 'Sonnet 5'], ['opus', 'Opus 4.8'], ['haiku', 'Haiku 4.5']]);
+  assert.equal(models.details.claude.haiku.resolvedModel, 'claude-haiku-4-5-20251001');
+  assert.equal(models.sources.claude, 'cli');
   assert.ok(models.codex.some(([id]) => id === 'mock-second')); assert.deepEqual(models.efforts.codex['mock-first'], ['low', 'medium']);
 });
 test('health does not mistake Not logged in for Logged in', async () => {
@@ -95,4 +98,12 @@ test('invalid payload and foreign origin cannot start a CLI', async () => {
     assert.equal((await fetch(base + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).status, 400);
   }
   assert.equal((await fetch(base + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://foreign.example' }, body: '{}' })).status, 403);
+});
+
+test('Claude catalogs without resolved IDs fall back to explicit automatic aliases', () => {
+  for (const data of [null, [], [{ value: 'opus', displayName: 'Opus' }]]) {
+    const result = claudeCatalog(data);
+    assert.deepEqual(result.details, {});
+    assert.equal(result.claude.find(([id]) => id === 'opus')[1], 'Opus · 自动版本');
+  }
 });
