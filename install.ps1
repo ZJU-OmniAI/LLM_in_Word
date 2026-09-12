@@ -24,15 +24,20 @@ Set-Acl -Path $Base -AclObject $Acl
 $Pfx = Join-Path $CertDir 'localhost.pfx'
 if (!(Test-Path $Pfx)) {
     Write-Host 'Creating a localhost certificate in the current-user certificate store...'
-    $Cert = New-SelfSignedCertificate -Subject 'CN=LLM_in_Word-localhost' -Type Custom -KeyUsage DigitalSignature,KeyEncipherment -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -NotAfter (Get-Date).AddDays(365) -TextExtension @('2.5.29.17={text}DNS=localhost&IPAddress=127.0.0.1', '2.5.29.37={text}1.3.6.1.5.5.7.3.1')
+    $Cert = New-SelfSignedCertificate -Subject 'CN=LLM_in_Word-localhost' -Provider 'Microsoft Software Key Storage Provider' -KeyProtection None -Type Custom -KeyUsage DigitalSignature,KeyEncipherment -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -NotAfter (Get-Date).AddDays(365) -TextExtension @('2.5.29.17={text}DNS=localhost&IPAddress=127.0.0.1', '2.5.29.37={text}1.3.6.1.5.5.7.3.1')
+    Write-Host 'Local certificate created; exporting the private key...'
     $Password = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
     Export-PfxCertificate -Cert $Cert -FilePath $Pfx -Password (ConvertTo-SecureString $Password -AsPlainText -Force) -CryptoAlgorithmOption AES256_SHA256 | Out-Null
     [IO.File]::WriteAllText((Join-Path $CertDir 'pfx-password.txt'), $Password)
+    Write-Host 'Private key exported; exporting the public certificate...'
     Export-Certificate -Cert $Cert -FilePath (Join-Path $CertDir 'localhost.cer') | Out-Null
     [IO.File]::WriteAllText((Join-Path $CertDir 'thumbprint.txt'), $Cert.Thumbprint)
 }
 # Trust only this localhost certificate for this Windows user. Windows may prompt.
-Import-Certificate -FilePath (Join-Path $CertDir 'localhost.cer') -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+Write-Host 'Trusting the localhost certificate for the current user...'
+& certutil.exe -user -f -addstore Root (Join-Path $CertDir 'localhost.cer') | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Could not trust the localhost certificate for the current user.' }
+Write-Host 'Certificate trust installed; staging runtime files...'
 
 $Stage = Join-Path $Base ('app.stage.' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $Stage | Out-Null
@@ -48,6 +53,7 @@ try {
     Move-Item $Stage $App
 } finally { if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force } }
 
+Write-Host 'Runtime files installed; configuring the background service...'
 $Config = @{ node = $Node; env = @{ LLM_IN_WORD_DATA_DIR = $Base; LLM_IN_WORD_CERT_DIR = $CertDir; LLM_IN_WORD_PORT = '8377' } }
 foreach ($Name in @('HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','LLM_IN_WORD_TIMEOUT_MS','LLM_IN_WORD_MAX_CHARS')) {
     $Value = [Environment]::GetEnvironmentVariable($Name)
@@ -83,6 +89,7 @@ $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -F
 $Shortcut.WorkingDirectory = $Base
 $Shortcut.WindowStyle = 7
 $Shortcut.Save()
+Write-Host 'Starting the background service...'
 & $Manager -Action Start -Base $Base
 # Node trusts the exact generated certificate; validation is never globally disabled.
 & $Node (Join-Path $App 'tools\check-install.js') $CertDir

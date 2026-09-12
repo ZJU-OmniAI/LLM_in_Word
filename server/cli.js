@@ -68,7 +68,7 @@ export async function runClaude({ prompt, model, effort, signal, sessionId, resu
 
 export async function runCodex({ prompt, model, effort, images = [], signal, resume }, onEvent) {
   if (signal?.aborted) return { ok: false, aborted: true, errors: [] };
-  const workdir = await mkdtemp(path.join(os.tmpdir(), 'word_edit-codex-'));
+  const workdir = await mkdtemp(path.join(os.tmpdir(), 'llm-in-word-codex-'));
   try {
     const events = eventCollector(onEvent);
     const output = path.join(workdir, 'last.txt');

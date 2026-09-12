@@ -1,34 +1,55 @@
-# 技术说明
+# Architecture / 技术说明
 
-- **保格式替换的原理**：应用时先 `getHtml()` 拿目标段带格式的 HTML，拍平成"每个字符 + 行内格式链 + 所在段落"，
-  与新文本做逐字 diff（中文按单字、英文按词，先掐公共前后缀）：未变字符沿用原格式链，新增字符继承被替换处/左邻格式，
-  段落按新文本换行重排并克隆来源段落元素；重建结果**自校验**（拍平回来必须与新文本一字不差）后才 `insertHtml`，
-  任何环节失败都退回 `insertText` 纯文本——宁可丢格式不写坏内容。Word 导出 HTML 里的排版性断行有三档容错对齐。
-  prompt 里也要求模型"没必要改的词句逐字保留"，改动越少格式锚得越准
-- **TCC**：launchd 拉起的 node 读 `~/Desktop` 会被 macOS 隐私权限拦（zsh 的完全磁盘访问罩不住子进程），
-  所以 install.sh 把运行文件**拷到 `~/.word_edit/app/` 再跑**，绕开整个问题。改代码后要重跑 install.sh 同步
-- **必须 HTTPS**：Word 的任务窗格是 https 上下文，manifest 里的本机地址必须 https 且证书受信任。
-  install.sh 用 openssl 自签（SAN=localhost，**有效期 800 天**——macOS 要求 ≤825 天否则拒信）并加入登录钥匙串。
-  可以用 `openssl x509 -enddate -noout -in ~/.word_edit/cert/localhost-cert.pem` 查看有效期。过期后：删掉 `~/.word_edit/cert` 重跑 install.sh 即可
-- **流式心跳**：codex 的回答常常整块最后才到，中间几十秒零字节；Word 的 WKWebView 对 60 秒没有数据的连接
-  按空闲超时掐断（面板报"请求失败：Load failed"）。服务端每 15 秒发一行 `{type:'ping'}` 保活（面板忽略）。
-- **代理烤入**：launchd/Word 拉起的进程不带 ~/.zshrc 的代理变量，claude 直连会 403。
-  install.sh 把安装时的代理写死进 `~/.word_edit/run.sh`；**代理端口变了就重跑一次**
-- **段落符**：Word 内部段落标记是 `\r`、软回车是 `\v`。读出来统一转 `\n` 再比对/发模型，写回时 `\n` 转回 `\r`
-- **office.js 必须走微软 CDN**（官方要求）；加载失败面板会提示
-- 侧载目录：`~/Library/Containers/com.microsoft.Word/Data/Documents/wef/`，改 manifest 后要完全退出 Word 重开才生效
-- 加载项 ID：`357a0a80-3537-4833-b135-a8177994730f`（manifest.xml 里固定，重装不失效）
+## Runtime
 
+```text
+Word document + Office.js side pane
+              │ HTTPS / NDJSON (127.0.0.1:8377)
+              ▼
+Local Node.js service
+              │ stdin + structured CLI events
+              ├── Claude Code
+              └── Codex CLI → configured model provider
+```
 
-## 源码结构
+The runtime has no external npm dependencies. Development tests use jsdom. Office.js loads from Microsoft's CDN. / 运行时无额外 npm 依赖，开发测试依赖 jsdom，Office.js 由微软 CDN 加载。
 
-- `server/server.js`：HTTPS、本机 API、请求收尾。
-- `server/cli.js` / `server/process.js`：CLI 适配、事件解析、进程生命周期。
-- `server/models.js` / `server/health.js`：模型列表与本机诊断。
-- `server/prompt.js`：全文上下文、多目标改写与续聊提示。
-- `taskpane/taskpane.js`：Office.js、目标锚定、格式迁移与面板状态。
-- `taskpane/table-utils.js`：表格协议、解析及差异比较。
+| Component | Responsibility |
+| --- | --- |
+| `server/server.js` | Loopback HTTPS, same-origin API checks, request cancellation and attachment cleanup. |
+| `server/launch.js` | Cross-platform CLI launch, official npm shim resolution, process-tree termination. |
+| `server/cli.js`, `server/process.js` | Backend arguments, streaming event parsing, timeouts and error classification. |
+| `server/models.js`, `server/health.js` | Model discovery and CLI/login diagnostics without paid generation. |
+| `server/prompt.js` | Document context, target markers and follow-up prompts. |
+| `taskpane/taskpane.js` | Office.js integration, target anchoring, review/apply, formatting and local state. |
+| `taskpane/table-utils.js` | Table protocol, parsing and cell differences. |
+| `install.ps1`, `tools/windows-*.{ps1,js}` | Windows installation, user Startup shortcut, supervisor and lifecycle controls. |
+| `install.sh` | macOS certificate trust, launchd service, runtime staging and Word manifest installation. |
 
-## 请求流程
+## Windows
 
-首轮携带正文、目标与指令，CLI 完成后保存会话 ID。上下文和进度相符时续聊；明确的会话失效可重建一次。接口通过 NDJSON 返回事件，只有完成且无错误的回答才可应用。
+The installer uses `%LOCALAPPDATA%\LLM_in_Word`, protected by user/SYSTEM/administrators ACLs. A PFX certificate and random password are stored under `cert`; trust is limited to CurrentUser. The Node HTTPS server loads PFX directly, so OpenSSL is not required. / Windows 不依赖 OpenSSL，证书私钥及启动配置保存在受权限保护的目录。
+
+The add-in ID maps to the manifest path in `HKCU\Software\Microsoft\Office\16.0\WEF\Developer`, matching [Microsoft's dev-settings implementation](https://github.com/OfficeDev/Office-Addin-Scripts/blob/master/packages/office-addin-dev-settings/src/dev-settings-windows.ts). No SMB share, system service or machine-wide registry change is needed.
+
+A Startup shortcut runs the service manager under the current user. The manager starts a hidden Node supervisor, which restarts the backend after unexpected exits. Stop/update/uninstall checks the PID's command line before terminating its process tree. CLI cancellation uses `taskkill /T /F`. This is sign-in startup, not a system service available before sign-in.
+
+Native `.exe` CLIs execute directly. Official npm `.cmd` shims resolve to known JavaScript entry points and execute through Node with an argument array and `shell:false`; JSON, spaces, Unicode and shell characters are not interpolated through cmd.exe. Arbitrary custom batch wrappers are intentionally unsupported; use a native executable or JS entry point instead.
+
+## macOS
+
+Runtime files live outside Desktop to avoid background-service access restrictions from macOS TCC. Fresh installs use `~/.llm_in_word`; upgrades retain `~/.word_edit` and existing certificate trust. The launchd label is `com.llm_in_word.server`.
+
+The installer generates a localhost PEM certificate, trusts it in the login Keychain and copies the manifest to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/`. It persists proxy variables and CLI paths in a user-only `run.sh`. CLI cancellation targets a detached POSIX process group.
+
+## Editing and context
+
+The initial request includes document text, selected targets and the instruction. Compatible follow-ups reuse a CLI session. Changing the document/targets rebuilds context; an explicitly expired session can be rebuilt once. Authentication, quota and general connection errors do not trigger a second automatic model generation.
+
+NDJSON heartbeats are sent every 15 seconds. Failed or truncated output cannot be applied. Cancellation closes the associated CLI tree and request-owned temporary files are removed.
+
+For formatted replacement, the pane flattens Word's HTML into characters with their formatting chains, computes a text diff, preserves unchanged formatting, and inherits adjacent formatting for inserted text. It validates the rebuilt text before `insertHtml`; unsupported or inconsistent structures fall back to `insertText`. Word's `\r` paragraph markers and `\v` soft breaks are normalized during comparison. / 格式迁移先对齐、再校验；不能安全迁移时回退纯文本。
+
+## Rename compatibility
+
+The stable add-in ID `357a0a80-3537-4833-b135-a8177994730f`, legacy `word_edit_target` content-control tag and `we:*` webview storage keys stay unchanged to preserve existing documents and history. `WORD_EDIT_*` environment variables are fallback aliases for `LLM_IN_WORD_*`. These are compatibility identifiers, not the displayed project name.

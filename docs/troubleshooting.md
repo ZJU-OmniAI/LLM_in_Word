@@ -1,13 +1,50 @@
-# 常见问题
+# Troubleshooting / 故障排查
 
-| 症状 | 处理 |
+[English guide](../README.md) · [中文指南](../README.zh-CN.md)
+
+## Windows
+
+| Symptom / 现象 | What to check / 处理方式 |
 | --- | --- |
-| 面板顶部「本机服务未运行」 | `tail -20 ~/.word_edit/server.log` 看原因；重启：`launchctl kickstart -k gui/$(id -u)/com.word_edit.server` |
-| 面板整个空白 | ① 证书信任没生效：重跑 `./install.sh`；还不行就双击 `~/.word_edit/cert/localhost-cert.pem` 手动导入钥匙串设「始终信任」，重开 Word。② 系统代理没绕过本机：在代理客户端（Clash 等）的绕过/bypass 列表里确认有 `localhost, 127.0.0.1` |
-| 命令行 curl 测服务"连不上" | 本机回环被 shell 里的代理劫持了（curl 会走 `https_proxy`），加 `--noproxy '*'` 再测：`curl -sk --noproxy '*' https://127.0.0.1:8377/api/ping` |
-| 「插入→加载项」里找不到 AI 改写 | 确认 `~/Library/.../wef/` 里有 manifest（重跑 install.sh），**完全退出** Word 再开；公司账号可能被管理员禁侧载 |
-| claude 报 403/网络错误 | 代理变了，重跑 `./install.sh` 刷新垫片里的代理 |
-| 「请求失败：Load failed」 | 连接被网页视图掐断。已加 15 秒心跳保活、45 秒流读取看门狗及默认 5 分钟 CLI 总超时；仍出现时请检查服务日志（看 `~/.word_edit/server.log` 有无 `[uncaught]`）|
-| 应用时提示"目标已丢失" | 锚定控件被删了（比如整段被删除），重新选中一段设为目标 |
-| 改完发现局部加粗没了 | 看应用后的提示：若显示"按纯文本写入"，是该段结构复杂触发了回退（表格/图片/HTML 对不齐），开修订模式能看到丢了什么，手动补 |
-| 换行/分段不对 | 反馈一下具体样例——`\n→\r` 的段落映射在你的 Word 版本上可能有差异 |
+| Installer cannot find Node / 找不到 Node | Install Node.js 22.12+ (22.x) or 24+. Reopen PowerShell; check `node --version`. / 安装后重新打开终端。 |
+| Script execution is blocked / 脚本执行被阻止 | Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1`. This is process-scoped. Domain policy may still block scripts; ask the administrator rather than changing global policy. / 单位组策略仍可能限制脚本。 |
+| No add-in in Word / 找不到加载项 | Completely exit Word and reopen. Look in Home → Add-ins → Developer Add-ins. Check the registry value under `HKCU\Software\Microsoft\Office\16.0\WEF\Developer`; reinstall if missing. / 完全重启 Word，重新安装可恢复注册。 |
+| Blank pane / 空白侧栏 | Verify the installer passed HTTPS checks. Re-run installation to restore current-user certificate trust. Ensure Word/Edge WebView2 is updated and your proxy bypasses localhost. / 检查证书、WebView2 与代理绕过。 |
+| CLI missing / 未找到 CLI | Use native Windows Claude/Codex. A WSL-only install is insufficient. Run `where.exe claude` / `where.exe codex`; set `LLM_IN_WORD_CLAUDE_BIN` / `LLM_IN_WORD_CODEX_BIN` before reinstalling if needed. / 支持原生 exe 和官方 npm 入口。 |
+| Service stopped / 后台服务停止 | Run `tools\windows-service.ps1 -Action Status` or `-Action Restart` via PowerShell. Inspect `%LOCALAPPDATA%\LLM_in_Word\server.log`. / 连接设置也会显示日志位置。 |
+| Does not start at sign-in / 登录未自启 | Check Windows Settings → Apps → Startup and the `LLM_in_Word.lnk` shortcut in your user Startup folder. Reinstall if the shortcut was removed. / 启动项被系统禁用时需手动恢复。 |
+| Certificate expired / 证书过期 | Uninstall, rename the local `cert` directory as a backup, then reinstall to issue a fresh certificate. / 保留旧证书备份，再重新生成。 |
+
+Windows lifecycle commands (run from the source repository):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\windows-service.ps1 -Action Status
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\windows-service.ps1 -Action Restart
+Get-Content "$env:LOCALAPPDATA\LLM_in_Word\server.log" -Tail 30
+```
+
+## macOS
+
+Fresh installs use `~/.llm_in_word`; upgrades keep an existing `~/.word_edit`. / 新安装使用新目录，旧安装沿用原目录。
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.llm_in_word.server
+# Use ~/.word_edit/server.log for a legacy installation.
+tail -30 ~/.llm_in_word/server.log
+```
+
+If the pane is blank, re-run `./install.sh` and check the localhost certificate in Keychain Access. If your Word build exposes add-ins under Home rather than Insert, use Home → Add-ins → Developer Add-ins. Completely quit Word with Cmd+Q after manifest changes. / 空白面板优先检查钥匙串信任；清单更新后需完全退出 Word。
+
+## Both platforms / 通用问题
+
+| Symptom / 现象 | Explanation / 处理 |
+| --- | --- |
+| “Not logged in” / 需要登录 | Run `claude auth login` or `codex login` as the same OS user. Click Check again afterward. / 用运行 Word 的同一用户登录。 |
+| Connection check is green but generation fails / 检测正常但生成失败 | Health checks inspect CLI and login state without model generation. Check provider access, proxy, account limits, or model availability. / 状态检测不等同于模型网络连通性验证。 |
+| Proxy port changed / 代理端口变化 | Re-run `npm run update` with the new proxy environment. The installer persists those settings for background processes. / 从配置了新代理的终端重新更新。 |
+| Stalled request / 请求停滞 | The backend sends a heartbeat every 15 seconds. The pane has a 45-second stream watchdog; the default CLI timeout is 5 minutes. Retry or inspect logs if repeated. / 可停止生成，排查后重试。 |
+| Partial answer cannot be applied / 半截结果不能应用 | Intentional: only a completed, successful response is eligible for writing into Word. / 防止中断结果覆盖正文。 |
+| Selection differs from model context / 选了一段却读取全文 | Targets limit write locations; document text supplies context. See the README data section. / 这是当前设计。 |
+| Formatting changes / 格式变化 | Complex HTML can fall back to plain text. Review a copy and keep tracked changes enabled. / 复杂文档需要人工检查。 |
+
+When reporting a bug, include OS, Word version, Node/CLI versions, and a synthetic example. Do not attach real document content, tokens, or proxy credentials. / 报错请使用合成示例，删除敏感内容。

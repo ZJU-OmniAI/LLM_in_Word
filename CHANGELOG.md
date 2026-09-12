@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.6.0 — 2026-09-13
+
+- Rename the project and private GitHub repository to **LLM_in_Word**; preserve legacy data, document anchors and environment-variable aliases.
+- Add native Windows installation, current-user localhost certificate trust, Word developer registration, login startup, update/restart/stop/uninstall controls.
+- Launch Windows native executables and official npm CLI entry points without shell interpolation; cancel entire CLI process trees.
+- Add Windows CI coverage for the backend and installation lifecycle, including certificate-verified HTTPS.
+- Make English the default README and add a complete Chinese guide with platform-specific instructions.
+
 ## 0.5.0 — 2026-09-09
 
 - 重设计 Word 窄侧栏，突出目标、指令和审阅流程。

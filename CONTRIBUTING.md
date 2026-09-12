@@ -1,13 +1,13 @@
 # 参与开发
 
-感谢帮助改进 word_edit。请用合成文档描述问题，避免上传真实客户文件、未发表论文、账户信息或日志中的凭证。
+感谢帮助改进 LLM_in_Word。请用合成文档描述问题，避免上传真实客户文件、未发表论文、账户信息或日志中的凭证。
 
 ## 开发环境
 
 - Node.js 22.12+（22.x）或 24+
 - `npm ci` 安装开发依赖
 - `npm test` 运行格式、表格、后端和界面回归测试
-- `npm run preview` 打开本地 HTTP 预览；实际读取与写回文档需在 macOS Word 加载项中测试
+- `npm run preview` 打开本地 HTTP 预览；实际读取与写回文档需在 Windows 或 macOS Word 加载项中测试
 
 自动测试使用 `tools/fixtures/mock-cli.cjs`，不需要安装 Claude Code / Codex，也不调用真实模型。真实调用需自行登录相应 CLI，使用 `npm run test:live` 或 `npm run test:live:codex`；请勿把账户凭证加入 CI。
 
@@ -17,7 +17,7 @@
 - 目标内容控件、格式迁移、修订写入、表格更新是核心兼容性边界；修改时验证相应回归用例。
 - 新增 CLI 参数时核对本机 `--help`，并覆盖失败、取消、异常退出和空结果。
 - 修改流式协议时同时更新服务端与面板，失败的部分输出不得作为可应用结果。
-- 新功能或行为变动同步更新 README 与 CHANGELOG。
+- 新功能或行为变动同步更新英文 README.md、中文 README.zh-CN.md 与 CHANGELOG。
 
 ## 提交与 Pull Request
 

@@ -15,7 +15,9 @@
   <ProviderName>ZJU-OmniAI</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="LLM_in_Word"/>
-  <Description DefaultValue="选中一段正文 → 下指令 → diff 预览 → 一键替换（可走修订模式）。后端调用本机 Claude Code / Codex CLI。"/>
+  <Description DefaultValue="Review and apply AI edits in Word with your local Claude Code or Codex CLI.">
+    <Override Locale="zh-CN" Value="选中正文，预览差异，通过 Word 修订应用。调用本机 Claude Code 或 Codex CLI。"/>
+  </Description>
   <IconUrl DefaultValue="https://localhost:8377/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:8377/assets/icon-80.png"/>
   <SupportUrl DefaultValue="https://github.com/ZJU-OmniAI/LLM_in_Word/issues"/>
@@ -80,7 +82,7 @@
         <bt:String id="LLMInWord.ButtonLabel" DefaultValue="LLM_in_Word"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="LLMInWord.ButtonTooltip" DefaultValue="打开 AI 改写面板：选中一段正文，下指令改写，diff 预览后一键替换（可走修订模式）。"/>
+        <bt:String id="LLMInWord.ButtonTooltip" DefaultValue="打开 LLM_in_Word 面板：选中一段正文，下指令改写，diff 预览后一键替换（可走修订模式）。"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

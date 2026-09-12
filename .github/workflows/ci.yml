@@ -37,6 +37,7 @@ jobs:
       - name: Run offline regression tests
         run: npm test
       - name: Windows installation, update, HTTPS and uninstall smoke test
+        timeout-minutes: 3
         if: runner.os == 'Windows'
         shell: powershell
         run: ./tools/test-windows-install.ps1

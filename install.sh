@@ -1,8 +1,8 @@
 #!/bin/bash
 # LLM_in_Word macOS 一次性安装脚本：
-#   1) 把运行文件拷到 ~/.word_edit/app（launchd 拉起的 node 读桌面会被 TCC 拦，拷出去绕开）
+#   1) 把运行文件拷到 ~/.llm_in_word/app（旧安装沿用原目录）（launchd 拉起的 node 读桌面会被 TCC 拦，拷出去绕开）
 #   2) 生成并信任本机 HTTPS 证书（Word 的网页视图只认 https，第一次会弹一次钥匙串密码框）
-#   3) 注册 launchd 常驻服务 com.word_edit.server（开机自启、崩了自动拉起）
+#   3) 注册 launchd 常驻服务 com.llm_in_word.server（开机自启、崩了自动拉起）
 #   4) 把加载项 manifest 拷进 Word 的侧载目录
 # 改了代码 / 换了代理端口 → 重跑一次本脚本即可（幂等）。
 set -euo pipefail

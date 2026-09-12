@@ -1,138 +1,223 @@
-# word_edit · Word AI 改写助手
+# LLM_in_Word
 
-[English](README.en.md) · [安装与排错](docs/troubleshooting.md) · [技术说明](docs/architecture.md) · [参与开发](CONTRIBUTING.md)
+**Your local Claude Code or Codex CLI, right inside Microsoft Word.**
 
-在 Microsoft Word 中选中内容，用自然语言提出修改要求，预览差异后再写回文档。
-支持本机 **Claude Code** 与 **Codex CLI**，沿用各自已登录的账户，可选择模型和思考强度。
+English · [简体中文](README.zh-CN.md)
 
-> 当前支持 **macOS 桌面版 Word**。Windows 与 Word 网页版的安装流程尚未实现。
+Select a passage, describe what you want to change, review the differences, and apply the result with Word tracked changes. LLM_in_Word brings the editing workflow into a Word side pane and reuses the login of your locally installed CLI.
 
-## 主要功能
+[Windows installation](#windows-installation) · [macOS installation](#macos-installation) · [First edit](#your-first-edit) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
 
-- **多处一起改**：最多选择 8 处正文或表格，一条指令统一处理。
-- **先预览再应用**：展示删除与新增内容，逐处应用或应用全部。
-- **Word 修订**：默认保留修订，尽量迁移原有字体、加粗和段落格式。
-- **表格编辑**：改单元格、增删行，也可把文字整理成表格；列数变化时可能重建表格。
-- **文档问答**：针对所选内容或全文提问。
-- **连续协作**：会话历史、输入草稿、参考附件、快捷指令及拖拽上传。
-- **连接诊断**：查看 CLI 路径、版本、登录状态和可操作的错误提示。
-- **可靠收尾**：支持流式输出、心跳、超时与取消；未完成的回答不能一键写入文档。
+## What you can do
 
-## 文档会发送哪些内容？
+| Feature | In practice |
+| --- | --- |
+| Rewrite selected passages | Polish academic writing, shorten a paragraph, translate, adjust tone, or fix grammar. |
+| Review before applying | See additions and deletions in the side pane. Nothing is written into Word until you choose Apply. |
+| Use Word tracked changes | Keep the **保留修订** option enabled, then accept or reject edits in Word's Review tab. |
+| Edit several targets | Add up to **eight** separate passages or tables, then give one instruction that covers them all. |
+| Work with tables | Revise cell text and preview table differences, or turn selected text into a table. |
+| Ask about a document | Use **文档问答** to summarize, explain, or find inconsistencies without replacing text. |
+| Continue a conversation | Refine an answer, keep input drafts, revisit local conversation history, or export a conversation as Markdown. |
+| Choose your writing engine | Switch between Claude Code and Codex; choose a model and its supported reasoning effort. |
+| Add references | Attach text, Markdown, CSV, PDF, or image files. Support depends on the chosen CLI and model. |
+| Diagnose and recover | Inspect CLI paths, versions and login status; stop generation or retry failures. |
 
-**选区限定修改范围，全文用于理解上下文。** 首轮或上下文变化时，正文会交给所选 CLI；超过约 11 万字符时，按目标附近截取。连续对话在上下文一致时复用 CLI 会话。
+The side pane currently uses Chinese labels. Both Chinese and English documents and instructions are supported; the label guide below explains the controls for English readers.
 
-模型推理通常需要连接服务提供方，**本机后端不等于离线推理**。附件也会提供给所选 CLI。对话历史、草稿和 CLI 会话可能保存在本机。更多信息见 [数据与安全说明](SECURITY.md)。
+## Platform support
 
-## 安装
+| Platform | Installation and runtime | Verification |
+| --- | --- | --- |
+| **Windows desktop Word** | Native PowerShell installer; user certificate trust; Word registration; background service and login startup | Windows CI covers backend tests plus install, update, restart, HTTPS and uninstall. Interactive Word on Windows still needs a real-device acceptance run. |
+| **macOS desktop Word** | Shell installer; Keychain trust; launchd service; Word sideloading | Backend tests and real Word workflow verification. Screenshots below are from macOS Word. |
+| Word for the web / mobile | No supported installation workflow | Not supported in this release. |
+| Linux | Backend development and browser preview | Offline tests only; no desktop Word installer. |
 
-需要：
+Use a current **Microsoft 365 desktop Word** with Office web add-ins enabled. The manifest requires WordApi 1.3; some features need newer Word APIs. Older perpetual Office releases, WPS, and LibreOffice are not part of the tested target. Organization policies may prevent sideloading or trusting a local certificate.
 
-- macOS 与 Microsoft 365 桌面版 Word；修订 API 需相应 WordApi 支持。
-- Node.js **22.12+（22.x）或 24+**。
-- 至少安装并登录 Claude Code 或 Codex CLI，确认它能在终端正常运行。
-- Git（通过克隆获取源码时）。
+## Before installation
 
-克隆仓库并安装（私有阶段需有仓库访问权限）：
+You need:
+
+1. **Node.js 22.12+ on the 22.x line, or Node.js 24+.** Install from [Node.js](https://nodejs.org/en/download).
+2. **Git**, or an extracted ZIP of this repository. While the repository is private, your GitHub account needs access.
+3. At least one local, authenticated CLI: [Claude Code setup](https://code.claude.com/docs/en/setup) or [Codex CLI](https://github.com/openai/codex).
+
+In the terminal of the same OS/user that runs Word, verify the CLI you intend to use:
+
+```text
+node --version
+claude --version
+claude auth login
+```
+
+Or, for Codex:
+
+```text
+codex --version
+codex login
+```
+
+You only need one backend. On Windows use a **native Windows CLI**, not a CLI installed only inside WSL. Native `.exe` installations and official npm `.cmd` shims are supported. The installer does not install or log into model CLIs for you.
+
+## Windows installation
+
+Target: Windows 11 with current desktop Microsoft 365 Word and Windows PowerShell 5.1 or later. Use PowerShell under your normal Word user account; administrator privileges are not required by the installer. If using a managed work device, follow your organization's add-in policy.
+
+```powershell
+git clone https://github.com/ZJU-OmniAI/LLM_in_Word.git
+cd LLM_in_Word
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+`Bypass` applies to this PowerShell process only; it does not change the machine execution policy. Review the script before running it. Windows may ask you to confirm trust for the generated localhost certificate.
+
+The installer:
+
+1. Copies the runtime into `%LOCALAPPDATA%\LLM_in_Word\app` and restricts access to its local data directory.
+2. Creates a localhost HTTPS certificate and trusts it in **your user** certificate store.
+3. Registers `manifest.xml` in Word's current-user developer add-ins registry, following [Microsoft's registration implementation](https://github.com/OfficeDev/Office-Addin-Scripts/blob/master/packages/office-addin-dev-settings/src/dev-settings-windows.ts).
+4. Records CLI paths and proxy environment settings without printing credentials.
+5. Starts a hidden background supervisor and adds a **per-user Startup shortcut** for subsequent sign-ins.
+6. Verifies the service over HTTPS with the generated certificate. The runtime needs no external npm packages.
+
+Completely close and reopen Word. Open **Home → Add-ins → Developer Add-ins → LLM_in_Word**. Depending on the Office version, look under **Insert → My Add-ins**, or **More Add-ins → My Add-ins**. Once loaded, a **LLM_in_Word** button appears on the Home ribbon.
+
+If you downloaded a ZIP, extract it first and run the same PowerShell installation command in the extracted project directory. You do not need `npm ci` just to use the add-in.
+
+## macOS installation
 
 ```bash
-git clone https://github.com/ZJU-OmniAI/word_edit.git
-cd word_edit
+git clone https://github.com/ZJU-OmniAI/LLM_in_Word.git
+cd LLM_in_Word
 ./install.sh
 ```
 
-安装会将运行代码复制到 `~/.word_edit/app/`，创建并信任 localhost HTTPS 证书，注册用户级 launchd 常驻服务，最后侧载 Word 加载项清单。首次信任证书可能需要输入 macOS 登录密码。
+The installer copies runtime files to `~/.llm_in_word/app`, creates a localhost HTTPS certificate, registers the user launchd service `com.llm_in_word.server`, and places the manifest in Word's sideload folder. First installation may prompt for your Mac password to trust the certificate.
 
-安装后：
+Quit Word with **Cmd+Q**, reopen it, then choose **Home → Add-ins → Developer Add-ins → LLM_in_Word**. Older Word versions expose this under **Insert → My Add-ins**. See [Microsoft's Mac sideloading guide](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac).
 
-1. 完全退出 Word（⌘Q），再重新打开。
-2. 在「插入 → 加载项」的开发人员区域选择 **AI 改写**。
-3. 此后可通过「开始」功能区的 **AI 改写** 按钮打开侧栏。
+**Upgrading from word_edit:** the installer preserves an existing `~/.word_edit` directory and certificate, replaces the old launchd registration, and removes the old manifest filename. Your document target anchors and local conversation storage remain compatible. The project name is `LLM_in_Word`; the npm package name is `llm-in-word` to meet npm naming rules.
 
-运行后端只使用 Node.js 内置模块，**首次使用无需安装 npm 依赖**。`npm ci` 用于安装测试所需的开发依赖。
+## Your first edit
 
-## 使用
+1. Open a disposable copy of a Word document and open the **LLM_in_Word** side pane.
+2. Choose **Claude Code** or **Codex**. Click the connection indicator if the selected backend needs attention.
+3. Select a paragraph in the document. Click **添加 Word 选中内容** to add it as a target; add more selections if needed.
+4. Enter an instruction, such as **“Make this paragraph more concise. Keep the meaning and all numbers unchanged.”**
+5. Click **生成改写**. The response streams into the pane; you can stop a request while it runs.
+6. Inspect the diff. Keep **保留修订** enabled and click the apply button on the result card.
+7. Review the actual changes in Word. Accept or reject them using Word's **Review** controls.
 
-1. 在 Word 中选中文字，点侧栏的 **添加 Word 选中内容**；可重复添加多个目标。编辑表格时，将光标放入表格后添加。
-2. 选择后端、模型和思考强度，输入指令，或选择润色、精简等快捷指令。
-3. 点 **生成改写**。Enter 发送，Shift + Enter 换行。
-4. 检查每处目标的差异预览，再点 **应用**。开启「保留修订」时，可在 Word 审阅中逐项接受或拒绝。
-5. 应用成功的目标会自动移除；要继续修改该段，重新选中添加即可。
+For document questions, switch to **文档问答** and ask, for example, “Summarize the document in five bullets.” For follow-up edits, describe the next change in the same conversation. If the document or targets change, the tool rebuilds context rather than reusing stale context.
 
-文档问答模式不会写回文档。参考附件支持 txt、md、csv、PDF 和常见图片格式；PDF 建议使用 Claude Code。
+| Chinese control | Meaning |
+| --- | --- |
+| 改写文稿 / 文档问答 | Rewrite / Ask about the document |
+| 添加 Word 选中内容 | Add the current Word selection |
+| 保留修订 | Apply with tracked changes |
+| 生成改写 / 停止生成 | Generate / Stop |
+| 连接设置 / 重新检测 | Connection settings / Check again |
+| 新会话 / 会话历史 | New conversation / History |
 
-点击顶部连接状态可重新检测两个 CLI。检测只检查本机启动与登录状态，不调用模型生成，也不保证外部网络一定可用。
+## What does the model receive?
 
-## 更新
+**Selecting one paragraph does not mean the model sees only that paragraph.** The target determines where edits may be applied. On the first request, or when context changes, the tool also sends document text as context to the selected CLI. Long documents are trimmed around targets at approximately 110,000 characters in the pane, with a default server cap of 120,000 characters. A compatible follow-up may reuse the CLI's existing session.
 
-拉取代码后运行：
+The backend runs locally and binds to `127.0.0.1:8377`, but model inference normally connects to the chosen provider. Your CLI's authentication, provider settings, account limits and billing still apply. Reference files are passed to that backend; CLI history may retain prompts and document content. Panel history is stored in the local Word webview. Read [data handling and security](SECURITY.md) before using sensitive documents.
 
-```bash
+## Update and manage the service
+
+On either supported desktop platform, run these commands in the source repository:
+
+```text
 git pull --ff-only
 npm run update
 ```
 
-已有运行目录会备份到 `~/.word_edit/app.backup.<时间>/`。更新模式沿用证书，不修改钥匙串。完成后在 Word 面板点 **⟳**；若加载项清单有变化，需要完全退出并重新打开 Word。
+Updates back up the previous runtime. Refresh the side pane afterward; manifest changes require completely restarting Word. Re-run installation/update after changing CLI paths or proxy settings.
 
-代理或 CLI 路径变更后，也可重新运行更新命令。
+Windows service commands:
 
-## 开发与测试
-
-```bash
-npm ci
-npm test                 # 74 项回归检查；使用模拟 CLI，不需要账户或模型额度
-npm run preview          # http://127.0.0.1:8380/taskpane.html
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\windows-service.ps1 -Action Status
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\windows-service.ps1 -Action Restart
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\windows-service.ps1 -Action Stop
 ```
 
-浏览器预览可检查界面与连接；实际读取和写回文档需要在 Word 加载项中操作。
-
-真实后端测试使用合成内容，会调用已登录账户的模型，可能消耗额度：
+macOS restart:
 
 ```bash
-npm run test:live         # Claude：生成、续聊、多目标、表格
-npm run test:live:codex    # Codex：同上
-node tools/test-server.js --wrapper  # 验证本机正式 HTTPS 安装
+launchctl kickstart -k gui/$(id -u)/com.llm_in_word.server
 ```
 
-GitHub Actions 在 Linux 与 macOS 上运行离线回归测试，不配置模型凭证。它不测试真实 Word 的写回行为。
+The connection settings panel shows the log location. Windows uses `%LOCALAPPDATA%\LLM_in_Word\server.log`; a fresh Mac install uses `~/.llm_in_word/server.log` (legacy upgrades retain `~/.word_edit/server.log`).
 
-## 配置
+## Configuration
 
-| 环境变量 | 用途 | 默认值 |
+For direct `node server/server.js` runs, set environment variables. Installers persist CLI path overrides, proxy variables, timeout and text cap when run. Windows stores these in the access-restricted `runtime.json`; macOS uses `run.sh`.
+
+| Environment variable | Purpose | Default |
 | --- | --- | --- |
-| `WORD_EDIT_CLAUDE_BIN` | Claude Code 可执行文件 | 自动发现 |
-| `WORD_EDIT_CODEX_BIN` | Codex 可执行文件 | 自动发现 |
-| `WORD_EDIT_TIMEOUT_MS` | 单次 CLI 总超时 | `300000` |
-| `WORD_EDIT_MAX_CHARS` | 服务端正文上限 | `120000` |
-| `WORD_EDIT_DATA_DIR` | 应用数据目录 | `~/.word_edit` |
-| `WORD_EDIT_CERT_DIR` | HTTPS 证书目录 | `~/.word_edit/cert` |
-| `WORD_EDIT_PORT` | 本机服务端口 | `8377` |
+| `LLM_IN_WORD_CLAUDE_BIN` | Claude executable or JS entry point | Automatic discovery |
+| `LLM_IN_WORD_CODEX_BIN` | Codex executable or JS entry point | Automatic discovery |
+| `LLM_IN_WORD_TIMEOUT_MS` | Total time allowed for one CLI request | `300000` |
+| `LLM_IN_WORD_MAX_CHARS` | Server document text limit | `120000` |
+| `LLM_IN_WORD_DATA_DIR` | Data directory for direct server runs | `~/.llm_in_word`, or existing `~/.word_edit` |
+| `LLM_IN_WORD_CERT_DIR` | Certificate directory | `<data directory>/cert` |
+| `LLM_IN_WORD_PORT` | Port for direct server runs | `8377` |
 
-直接启动服务时可设置环境变量。launchd 安装模式由 `~/.word_edit/run.sh` 提供环境；手动修改后需重启服务。安装脚本默认端口固定为 8377，修改端口需要同时调整脚本和 `manifest.xml`。
+The old `WORD_EDIT_*` variables remain fallback aliases. Installers use fixed platform directories and port 8377; changing the installed port also requires editing every localhost URL in `manifest.xml`. Keep `localhost`, `127.0.0.1` and `::1` excluded from your system proxy.
 
-## 限制
+## Development and tests
 
-- 复杂的图片、域代码、文本框或无法对齐的 HTML 可能退回纯文本替换，部分格式需手动恢复。
-- 合并单元格、跨正文与表格的混合选区暂不支持；表格应单独添加为目标。
-- 模型返回的文字需要人工审阅，尤其是数据、引用和专业表述。
-- CLI 行为可能随版本变化；本项目通过本机 CLI 调用，不提供 Microsoft、Anthropic 或 OpenAI 官方支持。
-- 服务仅用于单用户本机运行，不应暴露到公网。
-
-排错方式见 [常见问题](docs/troubleshooting.md)，更新记录见 [CHANGELOG](CHANGELOG.md)。
-
-## 卸载
-
-以下操作会删除本工具的运行目录、日志及运行目录备份：
-
-```bash
-launchctl bootout gui/$(id -u)/com.word_edit.server
-rm -rf ~/.word_edit
-rm -f ~/Library/LaunchAgents/com.word_edit.server.plist
-rm -f ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/word_edit-manifest.xml
+```text
+npm ci
+npm test
+npm run preview
 ```
 
-可在「钥匙串访问」中手动删除 `word_edit-localhost` 证书。CLI 自身保存的会话不随本工具卸载而删除。
+Browser preview runs at `http://127.0.0.1:8380/taskpane.html`. A normal browser can preview the pane and check backend connectivity; reading and applying Word content requires the actual Word add-in.
 
-## 许可证
+Offline regression tests use synthetic text and mock CLIs, with no account credentials. [GitHub Actions](https://github.com/ZJU-OmniAI/LLM_in_Word/actions) runs them on Linux, macOS and Windows. Windows also exercises the installer and lifecycle against a real local HTTPS server. CI does **not** automate the Word desktop application.
 
-本项目采用 [MIT License](LICENSE)。依赖、Office.js 及各 CLI 受各自许可证或服务条款约束。
+Optional live backend tests consume provider usage:
+
+```text
+npm run test:live
+npm run test:live:codex
+```
+
+See [architecture](docs/architecture.md), [contributing](CONTRIBUTING.md) and the [changelog](CHANGELOG.md).
+
+## Limitations
+
+- Formatting preservation is best effort. Complex structures, images and unsupported HTML can fall back to plain-text replacement; review formatting before accepting edits.
+- The model can make mistakes. Check facts, formulas, tables and citations yourself.
+- Word's API support and organization policy vary. Windows desktop support is implemented, but interactive Windows Word acceptance testing is still outstanding.
+- This is a local single-user tool, not a server for shared network or internet deployment.
+
+## Uninstall
+
+Windows:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\windows-service.ps1 -Action Uninstall
+```
+
+This stops the process tree, removes the Startup shortcut and Word registration, and removes this install's certificate from your user stores. Local runtime files and logs are retained at `%LOCALAPPDATA%\LLM_in_Word`; delete the folder manually if you no longer need it.
+
+macOS:
+
+```bash
+launchctl bootout gui/$(id -u)/com.llm_in_word.server
+rm -f ~/Library/LaunchAgents/com.llm_in_word.server.plist
+rm -f ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/LLM_in_Word-manifest.xml
+```
+
+Then remove the `LLM_in_Word-localhost` certificate in Keychain Access (legacy name: `word_edit-localhost`) and optionally delete the runtime directory. CLI-owned conversations and Word webview history are separate from the runtime and are not automatically removed.
+
+## License
+
+[MIT](LICENSE). Office.js, model CLIs and their services remain subject to their respective licenses and terms. LLM_in_Word is an independent ZJU-OmniAI project, not an official Microsoft, Anthropic or OpenAI product.
