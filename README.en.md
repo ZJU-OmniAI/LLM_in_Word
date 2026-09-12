@@ -26,9 +26,10 @@ The local service binds to `127.0.0.1`. Do not expose it to the internet. See [S
 
 Requirements: macOS, Microsoft 365 desktop Word, Node.js 22.12+ on the 22.x line or 24+, and at least one installed and authenticated CLI.
 
-Clone this repository, enter its directory, and run:
+Clone and install the repository (access is required while it remains private):
 
 ```bash
+git clone https://github.com/ZJU-OmniAI/word_edit.git
 cd word_edit
 ./install.sh
 ```

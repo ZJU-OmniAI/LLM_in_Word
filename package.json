@@ -25,5 +25,13 @@
     "claude-code",
     "codex",
     "writing-assistant"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZJU-OmniAI/word_edit.git"
+  },
+  "homepage": "https://github.com/ZJU-OmniAI/word_edit#readme",
+  "bugs": {
+    "url": "https://github.com/ZJU-OmniAI/word_edit/issues"
+  }
 }

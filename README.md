@@ -33,9 +33,10 @@
 - 至少安装并登录 Claude Code 或 Codex CLI，确认它能在终端正常运行。
 - Git（通过克隆获取源码时）。
 
-克隆本仓库后，在项目目录执行：
+克隆仓库并安装（私有阶段需有仓库访问权限）：
 
 ```bash
+git clone https://github.com/ZJU-OmniAI/word_edit.git
 cd word_edit
 ./install.sh
 ```

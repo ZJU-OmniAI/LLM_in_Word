@@ -12,13 +12,13 @@
   xsi:type="TaskPaneApp">
   <Id>357a0a80-3537-4833-b135-a8177994730f</Id>
   <Version>0.5.0.0</Version>
-  <ProviderName>omniAI</ProviderName>
+  <ProviderName>ZJU-OmniAI</ProviderName>
   <DefaultLocale>zh-CN</DefaultLocale>
   <DisplayName DefaultValue="AI 改写"/>
   <Description DefaultValue="选中一段正文 → 下指令 → diff 预览 → 一键替换（可走修订模式）。后端调用本机 Claude Code / Codex CLI。"/>
   <IconUrl DefaultValue="https://localhost:8377/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:8377/assets/icon-80.png"/>
-  <SupportUrl DefaultValue="https://localhost:8377/taskpane.html"/>
+  <SupportUrl DefaultValue="https://github.com/ZJU-OmniAI/word_edit/issues"/>
   <Hosts>
     <Host Name="Document"/>
   </Hosts>
