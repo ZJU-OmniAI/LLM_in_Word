@@ -805,7 +805,7 @@
             tblMode = 'cells';
           } catch (e) {
             await trackOffSafe();
-            return { ok: false, error: `表格更新失败（${step}）：${String(e?.message || e)}。已写入的部分可 Cmd+Z 撤销` };
+            return { ok: false, error: `表格更新失败（${step}）：${String(e?.message || e)}。已写入的部分可用撤销快捷键恢复（Windows: Ctrl+Z；Mac: Cmd+Z）` };
           }
         } else {
           // 列数变了：原表后插新表（Word 原生 insertTable，行列和内容一次建好），再删原表

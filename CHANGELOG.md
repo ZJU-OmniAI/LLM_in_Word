@@ -6,7 +6,8 @@
 - Add native Windows installation, current-user localhost certificate trust, Word developer registration, login startup, update/restart/stop/uninstall controls.
 - Launch Windows native executables and official npm CLI entry points without shell interpolation; cancel entire CLI process trees.
 - Add Windows CI coverage for the backend and installation lifecycle, including certificate-verified HTTPS.
-- Make English the default README and add a complete Chinese guide with platform-specific instructions.
+- Make English the default README and add a complete Chinese guide with platform-specific instructions and three real Word screenshots.
+- Read target content without Word control boundary markers; retry macOS launchd registration while an old service finishes shutting down.
 
 ## 0.5.0 — 2026-09-09
 

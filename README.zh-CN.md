@@ -8,6 +8,10 @@
 
 [Windows 安装](#windows-安装) · [macOS 安装](#macos-安装) · [第一次改写](#第一次改写) · [故障排查](docs/troubleshooting.md) · [参与贡献](CONTRIBUTING.md)
 
+![在真实 Word 中选择段落并输入改写要求](docs/images/word-selection.jpg)
+
+*截图来自 macOS 桌面版 Word，使用专门编写的英文演示文案。*
+
 ## 可以做什么
 
 | 功能 | 实际用途 |
@@ -24,6 +28,18 @@
 | 连接检测与恢复 | 查看 CLI 路径、版本、登录状态，停止生成或重试失败请求。 |
 
 侧栏目前采用中文界面，支持中英文文档和指令。仓库首页默认显示英文，可通过顶部链接切换中文。
+
+## 在 Word 里实际使用
+
+**先预览差异。** 左侧仍是 Word 中选中的原段落，右侧显示新增和删除内容。本例使用真实 Claude Code 返回的改写结果。
+
+![Word 原文与真实模型改写结果的差异预览](docs/images/word-diff.jpg)
+
+**再以修订写入。** 新段落已进入文档；Word「简单标记」视图中的左侧红线表示存在待处理修订，可以通过「审阅」接受或拒绝。本例触发了纯文本回退，侧栏会明确提示格式可能需要检查。
+
+![改写应用后，Word 审阅功能区和待处理修订标记](docs/images/word-tracked-changes.jpg)
+
+三张截图均来自同一份 macOS Word 演示文档，用于展示工作流，不代表 Windows 实机截图。[截图说明](docs/images/README.md)。
 
 ## 平台支持
 

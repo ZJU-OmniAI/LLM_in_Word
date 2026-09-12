@@ -8,6 +8,10 @@ Select a passage, describe what you want to change, review the differences, and 
 
 [Windows installation](#windows-installation) · [macOS installation](#macos-installation) · [First edit](#your-first-edit) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
 
+![Selecting a paragraph and describing an edit in desktop Word](docs/images/word-selection.jpg)
+
+*Real macOS Word, synthetic demo text, and the LLM_in_Word side pane. The interface currently uses Chinese labels.*
+
 ## What you can do
 
 | Feature | In practice |
@@ -24,6 +28,18 @@ Select a passage, describe what you want to change, review the differences, and 
 | Diagnose and recover | Inspect CLI paths, versions and login status; stop generation or retry failures. |
 
 The side pane currently uses Chinese labels. Both Chinese and English documents and instructions are supported; the label guide below explains the controls for English readers.
+
+## See the workflow in Word
+
+**Preview the edit.** Additions and deletions appear in the side pane while the original passage remains selected in Word. This example uses a real Claude Code response.
+
+![Reviewing a real AI rewrite alongside the original Word paragraph](docs/images/word-diff.jpg)
+
+**Apply with tracked changes.** The new paragraph is written into Word. The red margin line in Word's Simple Markup view indicates a pending revision; use the Review tab to accept or reject it. This example used the plain-text fallback, which the pane reports explicitly.
+
+![Applied rewrite with the Word Review tab and pending revision marker](docs/images/word-tracked-changes.jpg)
+
+All screenshots use the same demonstration document in macOS desktop Word. They demonstrate the editing workflow; they are not Windows screenshots. [Screenshot notes](docs/images/README.md).
 
 ## Platform support
 

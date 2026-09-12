@@ -24,7 +24,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Restart failed.' }
     & $Manager -Action Uninstall
     if (Test-Path $Shortcut) { throw 'Uninstall did not remove startup shortcut.' }
-    $Value = Get-ItemPropertyValue 'HKCU:\Software\Microsoft\Office\16.0\WEF\Developer' '357a0a80-3537-4833-b135-a8177994730f' -ErrorAction SilentlyContinue
+    $Value = (Get-Item 'HKCU:\Software\Microsoft\Office\16.0\WEF\Developer').GetValue('357a0a80-3537-4833-b135-a8177994730f')
     if ($Value) { throw 'Uninstall did not unregister manifest.' }
     $Thumb = [IO.File]::ReadAllText((Join-Path $Base 'cert\thumbprint.txt')).Trim()
     if (Test-Path "Cert:\CurrentUser\Root\$Thumb") { throw 'Uninstall did not remove localhost trust.' }
