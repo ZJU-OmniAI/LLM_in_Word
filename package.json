@@ -1,16 +1,17 @@
 {
-  "name": "word_edit",
-  "version": "0.5.0",
+  "name": "llm-in-word",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
-  "description": "桌面版 Word 的 AI 改写加载项：选中一段 → 下指令 → diff 预览 → 一键替换（可走修订模式），后端调本机 claude/codex CLI",
+  "description": "LLM_in_Word \u2014 Review and apply AI edits in desktop Microsoft Word with your local Claude Code or Codex CLI.",
   "scripts": {
     "server": "node server/server.js",
-    "test": "node tools/test-format.js && node tools/test-table.js && node --test tools/test-backend.js tools/test-ui.js",
+    "test": "node tools/test-format.js && node tools/test-table.js && node --test tools/test-backend.js tools/test-ui.js tools/test-platform.js",
     "test:live": "node tools/test-server.js",
     "test:live:codex": "node tools/test-server.js --codex",
-    "preview": "WORD_EDIT_PORT=8380 WORD_EDIT_CERT_DIR=/tmp/word-edit-no-cert node server/server.js",
-    "update": "./install.sh --update-only"
+    "preview": "node tools/platform.js preview",
+    "update": "node tools/platform.js update",
+    "setup": "node tools/platform.js install"
   },
   "devDependencies": {
     "jsdom": "^29.1.1"
@@ -28,10 +29,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZJU-OmniAI/word_edit.git"
+    "url": "git+https://github.com/ZJU-OmniAI/LLM_in_Word.git"
   },
-  "homepage": "https://github.com/ZJU-OmniAI/word_edit#readme",
+  "homepage": "https://github.com/ZJU-OmniAI/LLM_in_Word#readme",
   "bugs": {
-    "url": "https://github.com/ZJU-OmniAI/word_edit/issues"
+    "url": "https://github.com/ZJU-OmniAI/LLM_in_Word/issues"
   }
 }

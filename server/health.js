@@ -4,7 +4,7 @@ import { runProcess } from './process.js';
 async function inspect(backend, bin) {
   const version = await runProcess(bin, ['--version'], { timeoutMs: 5000 });
   const base = { backend, path: bin, version: version.stdout.trim().split('\n')[0] || '' };
-  if (version.error) return { ...base, status: 'missing', label: '未找到 CLI', hint: `请安装 ${backend === 'claude' ? 'Claude Code' : 'Codex'}，或重新运行 ./install.sh 同步 CLI 路径。` };
+  if (version.error) return { ...base, status: 'missing', label: '未找到 CLI', hint: `请安装 ${backend === 'claude' ? 'Claude Code' : 'Codex'}，或运行 npm run update 同步 CLI 路径。` };
   if (version.code !== 0 || version.timedOut) return { ...base, status: 'error', label: 'CLI 启动异常', hint: '在终端检查 CLI 是否能正常启动。' };
   const auth = await runProcess(bin, backend === 'claude' ? ['auth', 'status', '--json'] : ['login', 'status'], { timeoutMs: 7000 });
   let loggedIn = null;

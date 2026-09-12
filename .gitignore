@@ -35,3 +35,7 @@ cert/
 *.pdf
 *.xlsx
 *.pptx
+
+.llm_in_word/
+runtime.json
+pfx-password.txt

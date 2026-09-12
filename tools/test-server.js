@@ -56,7 +56,7 @@ async function main() {
 
   // 2) 静态文件
   const html = await (await fetch(`${BASE}/taskpane.html`)).text();
-  if (!html.includes('AI 改写')) fail('taskpane.html 内容不对');
+  if (!html.includes('LLM_in_Word')) fail('taskpane.html 内容不对');
   log('静态文件 ok');
 
   // 2.5) 模型列表探测（claude 别名解析 + codex model/list；服务端有 5 分钟缓存）

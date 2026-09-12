@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
-import { spawnEnv, REQUEST_TIMEOUT_MS } from './config.js';
+import { spawnCli, killTree } from './launch.js';
+import { REQUEST_TIMEOUT_MS } from './config.js';
 
 export function lineParser(onLine) {
   let buffer = '';
@@ -24,11 +24,7 @@ export function runProcess(bin, args, { cwd, input = '', signal, timeoutMs = REQ
     let child, timer, killTimer, aborted = false, timedOut = false, error = null;
     let stdout = '', stderr = '', finished = false;
     const parser = lineParser((line) => onLine?.(line));
-    const kill = (sig) => {
-      if (!child?.pid) return;
-      try { process.kill(process.platform === 'win32' ? child.pid : -child.pid, sig); }
-      catch { try { child.kill(sig); } catch {} }
-    };
+    const kill = (sig) => killTree(child, sig);
     const stop = () => {
       kill('SIGTERM');
       if (!killTimer) killTimer = setTimeout(() => kill('SIGKILL'), 1000);
@@ -45,7 +41,7 @@ export function runProcess(bin, args, { cwd, input = '', signal, timeoutMs = REQ
       resolve({ code, stdout, stderr, error, aborted, timedOut });
     };
     try {
-      child = spawn(bin, args, { cwd, env: spawnEnv(), detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'] });
+      child = spawnCli(bin, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     } catch (e) { error = e; finish(null); return; }
     child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
     child.stdout.on('data', (chunk) => { stdout = (stdout + chunk).slice(-65536); parser.push(chunk); });
@@ -64,8 +60,8 @@ export function runProcess(bin, args, { cwd, input = '', signal, timeoutMs = REQ
 export function classifyError(message) {
   const text = String(message || '模型没有返回可用内容');
   let code = 'backend_error', hint = '可重试，或在连接设置中检查后端状态。';
-  if (/ENOENT|not found.*executable|启动.*失败/i.test(text)) {
-    code = 'cli_missing'; hint = '未找到 CLI。安装后重跑 ./install.sh，或设置 WORD_EDIT_CLAUDE_BIN / WORD_EDIT_CODEX_BIN。';
+  if (/ENOENT|not found.*executable|executable not found|启动.*失败/i.test(text)) {
+    code = 'cli_missing'; hint = '未找到 CLI。安装后运行 npm run update，或设置 LLM_IN_WORD_CLAUDE_BIN / LLM_IN_WORD_CODEX_BIN。';
   } else if (/no conversation found|session.*(not found|does not exist|invalid|expired)|thread.*(not found|does not exist)|failed to (load|resume).*session/i.test(text)) {
     code = 'session_expired'; hint = '会话记录已失效，可以重新读取文档继续。';
   } else if (/401|unauthorized|not logged in|authentication|login required|please.*log.?in|invalid.*(?:api.key|token)/i.test(text)) {
@@ -75,7 +71,7 @@ export function classifyError(message) {
   } else if (/model.*(?:not found|not supported|unavailable|does not exist)|unsupported.*(?:model|effort)/i.test(text)) {
     code = 'model'; hint = '请刷新模型列表，选择默认模型或较低思考强度后重试。';
   } else if (/timeout|timed out|ETIMEDOUT|ECONN|ENOTFOUND|fetch failed|403|network|connection/i.test(text)) {
-    code = 'network'; hint = '请检查网络和代理；代理端口变化后重跑 ./install.sh。';
+    code = 'network'; hint = '请检查网络和代理；代理端口变化后运行 npm run update。';
   }
   return { code, error: text.slice(-1600), hint };
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-  word_edit 的 Office 加载项清单。install.sh 会把它拷进
+  LLM_in_Word 的 Office 加载项清单。install.sh 会把它拷进
   ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/（Word 的侧载目录）。
   所有地址都指向本机服务 https://localhost:8377（端口改了要连同 server/config.js 一起改）。
 -->
@@ -11,14 +11,14 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
   <Id>357a0a80-3537-4833-b135-a8177994730f</Id>
-  <Version>0.5.0.0</Version>
+  <Version>0.6.0.0</Version>
   <ProviderName>ZJU-OmniAI</ProviderName>
-  <DefaultLocale>zh-CN</DefaultLocale>
-  <DisplayName DefaultValue="AI 改写"/>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="LLM_in_Word"/>
   <Description DefaultValue="选中一段正文 → 下指令 → diff 预览 → 一键替换（可走修订模式）。后端调用本机 Claude Code / Codex CLI。"/>
   <IconUrl DefaultValue="https://localhost:8377/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:8377/assets/icon-80.png"/>
-  <SupportUrl DefaultValue="https://github.com/ZJU-OmniAI/word_edit/issues"/>
+  <SupportUrl DefaultValue="https://github.com/ZJU-OmniAI/LLM_in_Word/issues"/>
   <Hosts>
     <Host Name="Document"/>
   </Hosts>
@@ -37,27 +37,27 @@
         <DesktopFormFactor>
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <OfficeTab id="TabHome">
-              <Group id="WordEdit.Group1">
-                <Label resid="WordEdit.GroupLabel"/>
+              <Group id="LLMInWord.Group1">
+                <Label resid="LLMInWord.GroupLabel"/>
                 <Icon>
-                  <bt:Image size="16" resid="WordEdit.Icon16"/>
-                  <bt:Image size="32" resid="WordEdit.Icon32"/>
-                  <bt:Image size="80" resid="WordEdit.Icon80"/>
+                  <bt:Image size="16" resid="LLMInWord.Icon16"/>
+                  <bt:Image size="32" resid="LLMInWord.Icon32"/>
+                  <bt:Image size="80" resid="LLMInWord.Icon80"/>
                 </Icon>
-                <Control xsi:type="Button" id="WordEdit.TaskpaneButton">
-                  <Label resid="WordEdit.ButtonLabel"/>
+                <Control xsi:type="Button" id="LLMInWord.TaskpaneButton">
+                  <Label resid="LLMInWord.ButtonLabel"/>
                   <Supertip>
-                    <Title resid="WordEdit.ButtonLabel"/>
-                    <Description resid="WordEdit.ButtonTooltip"/>
+                    <Title resid="LLMInWord.ButtonLabel"/>
+                    <Description resid="LLMInWord.ButtonTooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="WordEdit.Icon16"/>
-                    <bt:Image size="32" resid="WordEdit.Icon32"/>
-                    <bt:Image size="80" resid="WordEdit.Icon80"/>
+                    <bt:Image size="16" resid="LLMInWord.Icon16"/>
+                    <bt:Image size="32" resid="LLMInWord.Icon32"/>
+                    <bt:Image size="80" resid="LLMInWord.Icon80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>WordEdit.Taskpane</TaskpaneId>
-                    <SourceLocation resid="WordEdit.TaskpaneUrl"/>
+                    <TaskpaneId>LLMInWord.Taskpane</TaskpaneId>
+                    <SourceLocation resid="LLMInWord.TaskpaneUrl"/>
                   </Action>
                 </Control>
               </Group>
@@ -68,19 +68,19 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="WordEdit.Icon16" DefaultValue="https://localhost:8377/assets/icon-16.png"/>
-        <bt:Image id="WordEdit.Icon32" DefaultValue="https://localhost:8377/assets/icon-32.png"/>
-        <bt:Image id="WordEdit.Icon80" DefaultValue="https://localhost:8377/assets/icon-80.png"/>
+        <bt:Image id="LLMInWord.Icon16" DefaultValue="https://localhost:8377/assets/icon-16.png"/>
+        <bt:Image id="LLMInWord.Icon32" DefaultValue="https://localhost:8377/assets/icon-32.png"/>
+        <bt:Image id="LLMInWord.Icon80" DefaultValue="https://localhost:8377/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="WordEdit.TaskpaneUrl" DefaultValue="https://localhost:8377/taskpane.html"/>
+        <bt:Url id="LLMInWord.TaskpaneUrl" DefaultValue="https://localhost:8377/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="WordEdit.GroupLabel" DefaultValue="AI 改写"/>
-        <bt:String id="WordEdit.ButtonLabel" DefaultValue="✦ AI 改写"/>
+        <bt:String id="LLMInWord.GroupLabel" DefaultValue="LLM_in_Word"/>
+        <bt:String id="LLMInWord.ButtonLabel" DefaultValue="LLM_in_Word"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="WordEdit.ButtonTooltip" DefaultValue="打开 AI 改写面板：选中一段正文，下指令改写，diff 预览后一键替换（可走修订模式）。"/>
+        <bt:String id="LLMInWord.ButtonTooltip" DefaultValue="打开 AI 改写面板：选中一段正文，下指令改写，diff 预览后一键替换（可走修订模式）。"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

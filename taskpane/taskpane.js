@@ -1,4 +1,4 @@
-// word_edit 任务窗格逻辑：
+// LLM_in_Word 任务窗格逻辑：
 // 选中正文 → 🎯 添加为目标（用隐形内容控件锚定，可多段分散；文档再怎么编辑位置都不丢）→
 // 下指令 → 本机服务流式回复 → 每个目标一张 diff 预览卡 → ✅ 应用替换（可走 Word 修订模式，
 // 应用时做逐字格式迁移，尽量保留原格式）。
@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const TAG = 'word_edit_target'; // 目标内容控件的标记，靠它跨会话找回目标
+  const TAG = 'word_edit_target'; // Stable legacy tag preserves existing document targets. // 目标内容控件的标记，靠它跨会话找回目标
   const API = ''; // 面板和服务同源，相对路径即可
 
   // 模型列表：[候选值, 显示名]。别名由 CLI 解析成当下最新版本。
@@ -455,7 +455,7 @@
     };
   }
   function sessionMarkdown(messages) {
-    const lines = [`# ${docTitle() || 'Word 文档'}`, '', `> 导出自 word_edit · ${new Date().toLocaleString()}`, ''];
+    const lines = [`# ${docTitle() || 'Word 文档'}`, '', `> 导出自 LLM_in_Word · ${new Date().toLocaleString()}`, ''];
     for (const m of messages) {
       if (m.role === 'user') lines.push('## 🙋 用户', '', m.content, '');
       else lines.push(`## 🤖 助手${m.via ? `（${[m.via.backend, m.via.model, 'effort ' + m.via.effort].filter(Boolean).join(' · ')}）` : ''}`, '', m.content, '');
@@ -896,7 +896,7 @@
     if (state.serverOk === false) {
       els.banner.textContent = '本机服务暂时无法连接。打开连接设置查看恢复方法，输入草稿会保留。';
     } else if (!state.wordReady) {
-      els.banner.textContent = '请在 Word 的「AI 改写」加载项中使用。此处可预览界面、检查后端连接。';
+      els.banner.textContent = '请在 Word 的「LLM_in_Word」加载项中使用。此处可预览界面、检查后端连接。';
     } else if (backend && ['missing', 'auth', 'error'].includes(backend.status)) {
       els.banner.textContent = backend.hint;
     } else { els.banner.classList.add('hidden'); return; }
@@ -915,7 +915,7 @@
         return `<div class="connection-card ${b.status === 'ready' ? 'ready' : ''}"><h3>${id === 'claude' ? 'Claude Code' : 'Codex'}<span class="health-badge">${escapeHtml(b.label)}</span></h3><code>${escapeHtml(b.version || '版本未知')}<br>${escapeHtml(b.path)}</code><p>${escapeHtml(b.hint)}</p></div>`;
       }).join('') + `<p class="settings-footnote">本机服务 v${escapeHtml(health.version)} · ${health.https ? 'HTTPS' : 'HTTP 调试'} · ${health.proxyConfigured ? '已配置代理' : '未配置代理'}</p><p class="settings-footnote">日志：${escapeHtml(health.logPath)}</p>`;
     } catch (e) {
-      $('#connection-details').innerHTML = `<div class="connection-card"><h3>连接检测未完成</h3><p>${escapeHtml(e.message)}</p><p>在项目目录重新运行 ./install.sh，或在终端重启服务：</p><code>launchctl kickstart -k gui/$(id -u)/com.word_edit.server</code></div>`;
+      $('#connection-details').innerHTML = `<div class="connection-card"><h3>连接检测未完成</h3><p>${escapeHtml(e.message)}</p><p>在项目目录运行 npm run update，或在终端重启服务：</p><code>npm run update</code></div>`;
     } finally {
       button.disabled = false; button.textContent = '重新检测'; refreshStatusUI();
     }
@@ -1468,15 +1468,15 @@
         } else if (msg === '__CONNECT__') {
           try { ac.abort(); } catch {}
           raw += (raw ? '\n\n' : '') +
-            '⚠️ **连不上本机服务**（20 秒无响应）。终端里重启服务后点 🔁 重试：\n\n`launchctl kickstart -k gui/$(id -u)/com.word_edit.server`';
+            '⚠️ **连不上本机服务**（20 秒无响应）。终端里重启服务后点 🔁 重试：\n\n`npm run update`';
           ping();
         } else if (msg === '__STALL__') {
           raw += (raw ? '\n\n' : '') +
-            '⚠️ **连接停滞**（45 秒没收到任何数据，已主动断开）。点 🔁 重试；反复出现就重启服务：\n\n`launchctl kickstart -k gui/$(id -u)/com.word_edit.server`';
+            '⚠️ **连接停滞**（45 秒没收到任何数据，已主动断开）。点 🔁 重试；反复出现就重启服务：\n\n`npm run update`';
           ping();
         } else {
           const hint = /load failed|network/i.test(msg)
-            ? '（连接中途断了。点 🔁 重试；持续出现就重启服务，日志在 ~/.word_edit/server.log）'
+            ? '（连接中途断了。点 🔁 重试；持续出现就重启服务，可在连接设置查看日志路径）'
             : '';
           raw += (raw ? '\n\n' : '') + `⚠️ **请求失败**：${msg}${hint}`;
           ping();

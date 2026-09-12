@@ -1,9 +1,9 @@
 // 模型列表：Claude 稳定别名；Codex app-server 分页查询，5 分钟缓存。
-import { spawn } from 'node:child_process';
+import { spawnCli, killTree } from './launch.js';
 import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { CODEX_BIN, spawnEnv } from './config.js';
+import { CODEX_BIN } from './config.js';
 
 // Claude 使用稳定别名，刷新列表不再启动四次模型生成请求。
 const CLAUDE_MODELS = [['sonnet', 'Sonnet · 均衡'], ['opus', 'Opus · 深度'], ['haiku', 'Haiku · 快速']];
@@ -14,7 +14,7 @@ function listCodexModels() {
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawn(CODEX_BIN, ['app-server'], { env: spawnEnv(), stdio: ['pipe', 'pipe', 'ignore'] });
+      child = spawnCli(CODEX_BIN, ['app-server'], { stdio: ['pipe', 'pipe', 'ignore'] });
     } catch { resolve(null); return; }
     const send = (o) => { try { child.stdin.write(JSON.stringify(o) + '\n'); } catch {} };
     let buf = '';
@@ -25,7 +25,7 @@ function listCodexModels() {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      try { child.kill('SIGKILL'); } catch {}
+      killTree(child, 'SIGKILL');
       resolve(val);
     };
     const timer = setTimeout(() => finish(null), PROBE_TIMEOUT);

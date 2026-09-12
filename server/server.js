@@ -1,4 +1,4 @@
-// word_edit 本机服务：给 Word 加载项的任务窗格提供页面和 AI 接口。
+// LLM_in_Word 本机服务：给 Word 加载项的任务窗格提供页面和 AI 接口。
 // 与 overleaf_edit 的区别：Office 加载项没有 Chrome 那种 Native Messaging，
 // 所以这里起一个只听本机回环地址（127.0.0.1）的小 HTTPS 服务，面板页面和 API 同源。
 //   GET  /                → 跳转 /taskpane.html
@@ -23,7 +23,7 @@ import { getModels } from './models.js';
 import { getHealth } from './health.js';
 import { classifyError } from './process.js';
 
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 const activeRequests = new Set();
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url))); // 项目根目录
 
@@ -35,7 +35,7 @@ function safeName(name, i) {
   return base || `file${i}`;
 }
 async function writeAttachments(attachments) {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'word_edit-att-'));
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'LLM_in_Word-att-'));
   const files = [];
   const seen = new Set();
   try {
@@ -269,9 +269,13 @@ const certFile = path.join(CERT_DIR, 'localhost-cert.pem');
 if (existsSync(keyFile) && existsSync(certFile)) {
   tlsOpts = { key: readFileSync(keyFile), cert: readFileSync(certFile) };
 }
+const pfxFile = path.join(CERT_DIR, 'localhost.pfx');
+if (!tlsOpts && existsSync(pfxFile)) {
+  tlsOpts = { pfx: readFileSync(pfxFile), passphrase: readFileSync(path.join(CERT_DIR, 'pfx-password.txt'), 'utf8').trim() };
+}
 const server = tlsOpts ? https.createServer(tlsOpts, handler) : http.createServer(handler);
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`word_edit server ${VERSION} · ${tlsOpts ? 'https' : 'http（无证书，仅调试）'}://127.0.0.1:${server.address().port}`);
+  console.log(`LLM_in_Word server ${VERSION} · ${tlsOpts ? 'https' : 'http（无证书，仅调试）'}://127.0.0.1:${server.address().port}`);
 });
 
 // launchd 更新或手动重启时，也取消仍在生成的 CLI，避免后台遗留调用。
